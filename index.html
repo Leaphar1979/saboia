@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Sabóia - Controle Diário</title>
+  <link rel="stylesheet" href="style.css" />
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+</head>
+<body>
+  <main>
+    <section id="setup">
+      <h1>Sabóia</h1>
+      <p>Informe o valor diário e a data de início:</p>
+      <input type="number" id="dailyAmount" placeholder="Valor diário (ex: 50)" />
+      <input type="date" id="startDate" />
+      <button id="startButton">Iniciar</button>
+    </section>
+
+    <section id="appSection" class="hidden">
+      <h2>Saldo do Dia</h2>
+      <div id="balanceDisplay">R$ 0,00</div>
+
+      <h3>Registrar Gasto</h3>
+      <input type="number" id="expense" placeholder="Valor do gasto" />
+      <button id="addExpense">Adicionar</button>
+
+      <h3>Gastos do Dia</h3>
+      <ul id="expenseList"></ul>
+
+      <button id="resetButton" class="danger">Resetar Tudo</button>
+    </section>
+  </main>
+
+  <noscript>
+    <p style="color:red; text-align:center;">Este app requer JavaScript ativado.</p>
+  </noscript>
+
+  <script src="js/app.js" defer></script>
+</body>
+</html>

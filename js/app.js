@@ -29,25 +29,11 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
 
-  function calculateDaysPassed(startDate, today) {
-    const start = new Date(startDate);
-    const current = new Date(today);
-    const diff = current - start;
-    return Math.floor(diff / (1000 * 60 * 60 * 24));
-  }
-
   function calculateBalance(data) {
     const today = getTodayDate();
-    const daysPassed = calculateDaysPassed(data.startDate, today);
 
-    let accumulated = 0;
-    for (let i = 0; i < daysPassed; i++) {
-      accumulated += data.dailyAmount;
-    }
-
-    // Subtrai os gastos de hoje
     const expensesToday = data.expenses.reduce((sum, e) => sum + e.amount, 0);
-    const balance = accumulated + data.dailyAmount - expensesToday;
+    const balance = data.lastBalance + data.dailyAmount - expensesToday;
 
     return balance;
   }
@@ -65,7 +51,6 @@ document.addEventListener("DOMContentLoaded", () => {
         currency: "BRL"
       })}`;
 
-      // Botão editar
       const editBtn = document.createElement("button");
       editBtn.textContent = "Editar";
       editBtn.className = "edit-btn";
@@ -79,7 +64,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Botão apagar
       const deleteBtn = document.createElement("button");
       deleteBtn.textContent = "Apagar";
       deleteBtn.className = "delete-btn";
@@ -100,8 +84,10 @@ document.addEventListener("DOMContentLoaded", () => {
   function checkNewDay(data) {
     const today = getTodayDate();
     if (data.currentDate !== today) {
+      const yesterdayBalance = calculateBalance(data); // Salva o saldo do dia anterior
+      data.lastBalance = yesterdayBalance;
       data.currentDate = today;
-      data.expenses = []; // limpa os gastos do dia anterior
+      data.expenses = [];
       saveData(data);
     }
   }
@@ -124,7 +110,6 @@ document.addEventListener("DOMContentLoaded", () => {
     updateDisplay(data);
   }
 
-  // Iniciar app com dados
   const existingData = loadData();
   if (existingData) {
     initApp(existingData);
@@ -144,7 +129,8 @@ document.addEventListener("DOMContentLoaded", () => {
       startDate,
       dailyAmount,
       expenses: [],
-      currentDate: today
+      currentDate: today,
+      lastBalance: 0
     };
 
     saveData(data);

@@ -3,37 +3,56 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sabóia - Controle Diário</title>
+  <title>Simple$ - Controle Diário</title>
+
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Ícone para iPhone (tela inicial) -->
   <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Simple$">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <!-- Manifesto para Android (PWA) -->
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#f7941d">
 </head>
 <body>
   <main>
-    <section id="setup">
-      <h1>Sabóia</h1>
-      <p>Informe o valor diário e a data de início:</p>
-      <input type="number" id="dailyAmount" placeholder="Valor diário (ex: 50)" />
-      <input type="date" id="startDate" />
-      <button id="startButton">Iniciar</button>
-    </section>
+	<section id="setup">
+  	<h1>Simple$</h1>
+  	<p>Informe o valor diário e a data de início:</p>
+  	<input type="number" id="dailyAmount" placeholder="Valor diário (ex: 50)" />
+  	<input type="date" id="startDate" />
+  	<button id="startButton">Iniciar</button>
+	</section>
 
-    <section id="appSection" class="hidden">
-      <h2>Saldo do Dia</h2>
-      <div id="balanceDisplay">R$ 0,00</div>
+	<section id="appSection" class="hidden">
+  	<h2>Saldo do Dia</h2>
+  	<div id="balanceDisplay">R$ 0,00</div>
 
-      <h3>Registrar Gasto</h3>
-      <input type="number" id="expense" placeholder="Valor do gasto" />
-      <button id="addExpense">Adicionar</button>
+  	<h3>Registrar Gasto</h3>
+  	<input type="number" id="expense" placeholder="Valor do gasto" />
+  	<button id="addExpense">Adicionar</button>
 
-      <h3>Gastos do Dia</h3>
-      <ul id="expenseList"></ul>
+  	<h3>Gastos do Dia</h3>
+  	<ul id="expenseList"></ul>
 
-      <button id="resetButton" class="danger">Resetar Tudo</button>
-    </section>
+  	<button id="resetButton" class="danger">Resetar Tudo</button>
+	</section>
+
+	<!-- Rodapé com link para a página interna sobre.html -->
+	<footer style="text-align: center; margin-top: 2rem; font-size: 0.9rem; color: #666;">
+  	<p>
+    	ℹ️ <a href="sobre.html" style="color: inherit; text-decoration: underline;">
+      	Sobre, contato e licença
+    	</a>
+  	</p>
+	</footer>
   </main>
 
   <noscript>
-    <p style="color:red; text-align:center;">Este app requer JavaScript ativado.</p>
+	<p style="color:red; text-align:center;">Este app requer JavaScript ativado.</p>
   </noscript>
 
   <script src="js/app.js" defer></script>

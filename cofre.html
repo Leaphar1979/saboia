@@ -6,15 +6,6 @@
   <title>Cofre Sats - Simple$</title>
 
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Ícone para iPhone (tela inicial) -->
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Cofre Sats">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-
-  <!-- Manifesto para Android (PWA) -->
-  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#f7941d">
 
   <style>
@@ -29,6 +20,23 @@
       font-weight: bold;
       margin: 8px 0;
     }
+    .vault-actions {
+      display:flex;
+      gap:8px;
+      justify-content:center;
+      margin: 12px 0 4px;
+      flex-wrap: wrap;
+    }
+    .btn-outline {
+      background:#fff;
+      color:#333;
+      border:1px solid #ddd;
+      padding:10px 12px;
+      border-radius:10px;
+      cursor:pointer;
+      transition: background .15s ease;
+    }
+    .btn-outline:hover { background:#f7f7f7; }
     .vault-history {
       margin-top: 16px;
       text-align: left;
@@ -49,21 +57,29 @@
       justify-content: space-between;
       align-items: center;
     }
+    .delta-pos { color: #28a745; }
+    .delta-neg { color: #dc3545; }
+    .muted { color: #666; }
   </style>
 </head>
 <body>
   <main>
     <section>
       <h1>Cofre Sats</h1>
+
       <div class="vault-container">
         <p>Total acumulado:</p>
         <div class="vault-balance" id="vaultTotal">R$ 0,00</div>
-        <small>(equivalente aproximado em BTC)</small>
+        <small class="muted">Equivalente aproximado em BTC</small>
         <div id="vaultBtc">₿ 0.00000000</div>
+
+        <div class="vault-actions">
+          <button id="btnPurchase" class="btn-outline">Registrar compra de BTC (zerar cofre)</button>
+        </div>
       </div>
 
       <div class="vault-history">
-        <h3>Histórico de depósitos</h3>
+        <h3>Histórico</h3>
         <ul id="vaultList"></ul>
       </div>
 
@@ -74,42 +90,106 @@
   </main>
 
   <script>
-    const fmtBRL = n => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-    const fmtBTC = n => "₿ " + n.toFixed(8);
-
     const SATS_VAULT_KEY = "satsVault/v1";
     const SATS_LEDGER_KEY = "satsLedger/v1";
+    const fmtBRL = n => Number(n||0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const fmtBTC = n => "₿ " + (Number(n||0)).toFixed(8);
+    const round2 = n => Math.round((Number(n)+Number.EPSILON)*100)/100;
 
-    const vaultTotal = document.getElementById("vaultTotal");
-    const vaultBtc = document.getElementById("vaultBtc");
-    const vaultList = document.getElementById("vaultList");
+    // valor aproximado do BTC em BRL (ajuste quando quiser)
+    const BTC_PRICE = 350000;
 
-    // Simulação de taxa de conversão BRL -> BTC (estático, pode atualizar manualmente)
-    const BTC_PRICE = 350000; // valor aproximado do BTC em BRL
+    function loadVaultValue() {
+      const v = parseFloat(localStorage.getItem(SATS_VAULT_KEY) || "0");
+      return isNaN(v) ? 0 : v;
+    }
+    function setVaultValue(v) {
+      localStorage.setItem(SATS_VAULT_KEY, String(Math.max(0, round2(v))));
+    }
 
-    function loadVault() {
-      const vault = parseFloat(localStorage.getItem(SATS_VAULT_KEY)) || 0;
-      const ledger = JSON.parse(localStorage.getItem(SATS_LEDGER_KEY) || "[]");
+    function loadLedger() {
+      try { return JSON.parse(localStorage.getItem(SATS_LEDGER_KEY) || "[]"); }
+      catch { return []; }
+    }
+    function saveLedger(arr) {
+      localStorage.setItem(SATS_LEDGER_KEY, JSON.stringify(arr));
+    }
+    function addLedger(delta, type) {
+      if (!delta) return;
+      const now = new Date();
+      const item = {
+        ts: now.toISOString(),
+        date: now.toISOString().slice(0,10), // YYYY-MM-DD
+        delta: round2(delta),
+        type // 'apply'|'edit'|'delete'|'purchase'
+      };
+      const arr = loadLedger();
+      arr.push(item);
+      saveLedger(arr);
+    }
 
-      vaultTotal.textContent = fmtBRL(vault);
-      vaultBtc.textContent = fmtBTC(vault / BTC_PRICE);
-
-      vaultList.innerHTML = "";
-      if (ledger.length === 0) {
-        vaultList.innerHTML = "<li>Nenhum depósito registrado</li>";
-      } else {
-        ledger.reverse().forEach(entry => {
-          const li = document.createElement("li");
-          li.innerHTML = `
-            <span>${new Date(entry.date).toLocaleDateString("pt-BR")}</span>
-            <span>${fmtBRL(entry.amount)}</span>
-          `;
-          vaultList.appendChild(li);
-        });
+    function typeLabel(t) {
+      switch (t) {
+        case "apply": return "Taxa aplicada";
+        case "edit": return "Ajuste (edição)";
+        case "delete": return "Excluído (estorno)";
+        case "purchase": return "Compra BTC (saída)";
+        default: return "Movimentação";
       }
     }
 
-    document.addEventListener("DOMContentLoaded", loadVault);
+    function render() {
+      const vault = loadVaultValue();
+      document.getElementById("vaultTotal").textContent = fmtBRL(vault);
+      document.getElementById("vaultBtc").textContent = fmtBTC(vault / BTC_PRICE);
+
+      const list = document.getElementById("vaultList");
+      list.innerHTML = "";
+      const ledger = loadLedger().slice().reverse(); // mais recentes primeiro
+
+      if (ledger.length === 0) {
+        list.innerHTML = "<li class='muted'>Nenhuma movimentação ainda.</li>";
+        return;
+      }
+
+      ledger.forEach(item => {
+        const li = document.createElement("li");
+        const left = document.createElement("span");
+        const right = document.createElement("span");
+
+        const dateStr = item.date ? new Date(item.date).toLocaleDateString("pt-BR") : (item.ts || "").slice(0,10);
+        left.textContent = `${dateStr} — ${typeLabel(item.type)}`;
+
+        const delta = Number(item.delta || 0);
+        right.textContent = (delta >= 0 ? "+" : "") + fmtBRL(delta);
+        right.className = delta >= 0 ? "delta-pos" : "delta-neg";
+
+        li.appendChild(left);
+        li.appendChild(right);
+        list.appendChild(li);
+      });
+
+      // desabilita o botão se cofre já estiver zerado
+      const btn = document.getElementById("btnPurchase");
+      btn.disabled = vault <= 0;
+      btn.style.opacity = vault <= 0 ? .6 : 1;
+      btn.style.cursor = vault <= 0 ? "not-allowed" : "pointer";
+    }
+
+    function onPurchase() {
+      const cur = loadVaultValue();
+      if (cur <= 0) return;
+      if (!confirm(`Confirmar: registrar compra de BTC e zerar cofre (${fmtBRL(cur)})?`)) return;
+
+      addLedger(-cur, "purchase");  // saída
+      setVaultValue(0);             // zera cofre
+      render();                     // atualiza UI
+    }
+
+    document.addEventListener("DOMContentLoaded", () => {
+      render();
+      document.getElementById("btnPurchase").addEventListener("click", onPurchase);
+    });
   </script>
 </body>
 </html>

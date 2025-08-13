@@ -2,219 +2,114 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Cofre Sats — Simple$</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Cofre Sats - Simple$</title>
+
   <link rel="stylesheet" href="style.css" />
+
+  <!-- Ícone para iPhone (tela inicial) -->
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Cofre Sats">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+
+  <!-- Manifesto para Android (PWA) -->
+  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#f7941d">
+
   <style>
-    .cofre-wrap { max-width: 600px; margin: 0 auto; }
-    .cofre-header { display:flex; justify-content:space-between; align-items:center; gap:8px; }
-    .cofre-total { font-size: 1.6rem; font-weight: 700; }
-    .back-link { text-decoration: none; font-size: .95rem; }
-    .chart-card { padding: 12px; border:1px solid #eef1f5; border-radius:12px; background:#fff; box-shadow:0 1px 4px rgba(0,0,0,.06); }
-    #vaultChart { width: 100%; height: 180px; display:block; }
-    .ledger { margin-top: 12px; }
-    .ledger ul { list-style: none; padding-left:0; }
-    .ledger li { display:flex; justify-content:space-between; border-bottom:1px solid #eee; padding:8px 0; font-size:.95rem; }
-    .delta-pos { color:#28a745; }
-    .delta-neg { color:#dc3545; }
-    .btn-outline { background:#fff; color:#333; border:1px solid #ddd; }
-    .btn-outline:hover { background:#f7f7f7; }
-    .muted { color:#666; }
+    .vault-container {
+      background: var(--card);
+      padding: 16px;
+      border-radius: 8px;
+      text-align: center;
+    }
+    .vault-balance {
+      font-size: 1.5rem;
+      font-weight: bold;
+      margin: 8px 0;
+    }
+    .vault-history {
+      margin-top: 16px;
+      text-align: left;
+    }
+    .vault-history h3 {
+      margin-bottom: 8px;
+    }
+    .vault-history ul {
+      padding: 0;
+      list-style: none;
+    }
+    .vault-history li {
+      padding: 6px;
+      background: var(--bg);
+      margin-bottom: 4px;
+      border-radius: 6px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
   </style>
 </head>
 <body>
-  <main class="cofre-wrap">
-    <div class="cofre-header">
-      <a href="index.html" class="back-link">← Voltar</a>
-      <div class="cofre-total" id="vaultTotal">R$ 0,00</div>
-    </div>
+  <main>
+    <section>
+      <h1>Cofre Sats</h1>
+      <div class="vault-container">
+        <p>Total acumulado:</p>
+        <div class="vault-balance" id="vaultTotal">R$ 0,00</div>
+        <small>(equivalente aproximado em BTC)</small>
+        <div id="vaultBtc">₿ 0.00000000</div>
+      </div>
 
-    <div class="chart-card" style="margin:12px 0;">
-      <canvas id="vaultChart" width="600" height="180"></canvas>
-      <div class="muted" style="margin-top:6px;">Evolução do Cofre Sats (acumulado)</div>
-    </div>
+      <div class="vault-history">
+        <h3>Histórico de depósitos</h3>
+        <ul id="vaultList"></ul>
+      </div>
 
-    <div style="display:flex; gap:8px; margin: 10px 0 20px;">
-      <button id="btnPurchase" class="btn-outline" style="padding:10px 12px; border-radius:10px;">Registrei compra de BTC (zerar cofre)</button>
-      <button id="btnExport" class="btn-outline" style="padding:10px 12px; border-radius:10px;">Exportar CSV</button>
-    </div>
-
-    <section class="ledger card">
-      <h3 style="margin:0 0 8px;">Extrato do Cofre</h3>
-      <ul id="ledgerList"></ul>
+      <p style="text-align:center; margin-top: 16px;">
+        <a href="index.html" class="link-muted">⬅ Voltar ao Simple$</a>
+      </p>
     </section>
   </main>
 
   <script>
-    // chaves iguais às do app
+    const fmtBRL = n => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+    const fmtBTC = n => "₿ " + n.toFixed(8);
+
     const SATS_VAULT_KEY = "satsVault/v1";
     const SATS_LEDGER_KEY = "satsLedger/v1";
-    const CURRENCY = "pt-BR";
-    const BRL = { style: "currency", currency: "BRL" };
-    const fmtBRL = (n) => Number(n || 0).toLocaleString(CURRENCY, BRL);
 
-    const $vaultTotal = document.getElementById('vaultTotal');
-    const $ledgerList = document.getElementById('ledgerList');
-    const $btnPurchase = document.getElementById('btnPurchase');
-    const $btnExport = document.getElementById('btnExport');
+    const vaultTotal = document.getElementById("vaultTotal");
+    const vaultBtc = document.getElementById("vaultBtc");
+    const vaultList = document.getElementById("vaultList");
+
+    // Simulação de taxa de conversão BRL -> BTC (estático, pode atualizar manualmente)
+    const BTC_PRICE = 350000; // valor aproximado do BTC em BRL
 
     function loadVault() {
-      const v = parseFloat(localStorage.getItem(SATS_VAULT_KEY) || "0");
-      return isNaN(v) ? 0 : v;
-    }
-    function setVault(v) {
-      localStorage.setItem(SATS_VAULT_KEY, String(Math.max(0, Math.round((v+Number.EPSILON)*100)/100)));
-    }
-    function loadLedger() {
-      try { return JSON.parse(localStorage.getItem(SATS_LEDGER_KEY) || "[]"); } catch { return []; }
-    }
-    function saveLedger(arr) {
-      localStorage.setItem(SATS_LEDGER_KEY, JSON.stringify(arr));
-    }
-    function addLedger(delta, type) {
-      const now = new Date();
-      const item = {
-        ts: now.toISOString(),
-        date: now.toISOString().slice(0,10),
-        delta: Math.round((Number(delta)+Number.EPSILON)*100)/100,
-        type // 'apply'|'edit'|'delete'|'purchase'
-      };
-      const arr = loadLedger();
-      arr.push(item);
-      saveLedger(arr);
-      return item;
-    }
+      const vault = parseFloat(localStorage.getItem(SATS_VAULT_KEY)) || 0;
+      const ledger = JSON.parse(localStorage.getItem(SATS_LEDGER_KEY) || "[]");
 
-    function renderTotal() {
-      $vaultTotal.textContent = fmtBRL(loadVault());
-    }
+      vaultTotal.textContent = fmtBRL(vault);
+      vaultBtc.textContent = fmtBTC(vault / BTC_PRICE);
 
-    function renderLedger() {
-      const arr = loadLedger().slice().reverse(); // mais recentes no topo
-      $ledgerList.innerHTML = "";
-      if (arr.length === 0) {
-        $ledgerList.innerHTML = '<li class="muted">Sem movimentações ainda.</li>';
-        return;
-      }
-      for (const it of arr) {
-        const li = document.createElement("li");
-        const left = document.createElement("span");
-        const right = document.createElement("span");
-        left.textContent = `${it.date} — ${labelType(it.type)}`;
-        right.textContent = (it.delta >= 0 ? "+" : "") + fmtBRL(it.delta);
-        right.className = it.delta >= 0 ? "delta-pos" : "delta-neg";
-        li.appendChild(left); li.appendChild(right);
-        $ledgerList.appendChild(li);
+      vaultList.innerHTML = "";
+      if (ledger.length === 0) {
+        vaultList.innerHTML = "<li>Nenhum depósito registrado</li>";
+      } else {
+        ledger.reverse().forEach(entry => {
+          const li = document.createElement("li");
+          li.innerHTML = `
+            <span>${new Date(entry.date).toLocaleDateString("pt-BR")}</span>
+            <span>${fmtBRL(entry.amount)}</span>
+          `;
+          vaultList.appendChild(li);
+        });
       }
     }
 
-    function labelType(t) {
-      switch (t) {
-        case "apply": return "Taxa aplicada";
-        case "edit": return "Ajuste (edição)";
-        case "delete": return "Excluído (estorno)";
-        case "purchase": return "Compra BTC (saída)";
-        default: return "Movimentação";
-      }
-    }
-
-    // Gráfico simples (canvas): acumulado por dia
-    function renderChart() {
-      const canvas = document.getElementById("vaultChart");
-      const ctx = canvas.getContext("2d");
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-
-      const raw = loadLedger();
-      if (raw.length === 0) {
-        ctx.fillStyle = "#666";
-        ctx.fillText("Sem dados suficientes para gráfico.", 10, 20);
-        return;
-      }
-      // agrega por dia
-      const byDay = {};
-      for (const it of raw) {
-        byDay[it.date] = (byDay[it.date] || 0) + it.delta;
-      }
-      const days = Object.keys(byDay).sort();
-      // acumula
-      let acc = 0;
-      const points = days.map(d => {
-        acc += byDay[d];
-        return { d, v: acc };
-      });
-
-      if (points.length < 2) {
-        ctx.fillStyle = "#666";
-        ctx.fillText("Movimente o cofre para ver o gráfico.", 10, 20);
-        return;
-      }
-
-      const pad = 20;
-      const w = canvas.width - pad*2;
-      const h = canvas.height - pad*2;
-
-      const minV = Math.min(...points.map(p => p.v), 0);
-      const maxV = Math.max(...points.map(p => p.v), 0.01);
-      const range = maxV - minV || 1;
-
-      // eixos “leves”
-      ctx.strokeStyle = "#e9edf3";
-      ctx.beginPath();
-      ctx.moveTo(pad, pad + h);
-      ctx.lineTo(pad + w, pad + h);
-      ctx.stroke();
-
-      // linha
-      ctx.beginPath();
-      points.forEach((p, i) => {
-        const x = pad + (i/(points.length-1)) * w;
-        const y = pad + h - ((p.v - minV) / range) * h;
-        if (i === 0) ctx.moveTo(x,y); else ctx.lineTo(x,y);
-      });
-      ctx.lineWidth = 2;
-      ctx.strokeStyle = "#007bff";
-      ctx.stroke();
-
-      // ponto final
-      const last = points[points.length-1];
-      const lastX = pad + w;
-      const lastY = pad + h - ((last.v - minV) / range) * h;
-      ctx.fillStyle = "#007bff";
-      ctx.beginPath();
-      ctx.arc(lastX, lastY, 3, 0, Math.PI*2);
-      ctx.fill();
-    }
-
-    // ações
-    $btnPurchase.addEventListener("click", () => {
-      const cur = loadVault();
-      if (cur <= 0) {
-        alert("Cofre já está zerado.");
-        return;
-      }
-      if (!confirm(`Confirmar: registrar compra de BTC e zerar cofre (${fmtBRL(cur)})?`)) return;
-      addLedger(-cur, "purchase");
-      setVault(0);
-      renderTotal(); renderLedger(); renderChart();
-    });
-
-    $btnExport.addEventListener("click", () => {
-      const arr = loadLedger();
-      const header = "ts,date,delta,type\n";
-      const lines = arr.map(it => `${it.ts},${it.date},${it.delta},${it.type}`).join("\n");
-      const blob = new Blob([header + lines], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = "cofre_sats_ledger.csv";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-    });
-
-    // boot
-    renderTotal(); renderLedger(); renderChart();
+    document.addEventListener("DOMContentLoaded", loadVault);
   </script>
 </body>
 </html>

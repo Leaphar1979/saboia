@@ -59,18 +59,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const satsEnabledEl = document.getElementById("satsEnabled");
   const satsRateEl = document.getElementById("satsRate");
 
-  // === rótulo fantasma do date ===
-  const startDateWrap = document.querySelector(".input-wrap");
-  const hintStartDate = document.getElementById("hintStartDate");
-  function updateStartDateHint() {
-    if (!startDateWrap) return;
-    if (startDateInput.value) {
-      startDateWrap.classList.add("has-value");
-    } else {
-      startDateWrap.classList.remove("has-value");
-    }
-  }
-
   function getTodayDate() {
     const now = new Date();
     now.setUTCHours(now.getUTCHours() - 3); // Ajusta para UTC-3
@@ -151,7 +139,7 @@ document.addEventListener("DOMContentLoaded", () => {
   function checkNewDay(data) {
     const today = getTodayDate();
     if (data.currentDate !== today) {
-      const yesterdayBalance = calculateBalance(data);
+    const yesterdayBalance = calculateBalance(data);
       data.lastBalance = yesterdayBalance;
       data.currentDate = today;
       data.expenses = [];
@@ -316,11 +304,4 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("startButton")?.addEventListener("click", startClick);
   document.getElementById("addExpense")?.addEventListener("click", addExpenseClick);
   document.getElementById("resetButton")?.addEventListener("click", resetClick);
-
-  // Listeners do hint de data
-  startDateInput?.addEventListener("change", updateStartDateHint);
-  startDateInput?.addEventListener("input", updateStartDateHint);
-  startDateInput?.addEventListener("blur", updateStartDateHint);
-  // estado inicial do hint
-  updateStartDateHint();
 });

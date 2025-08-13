@@ -1,4 +1,4 @@
-:root {
+:root{
   --bg:#f2f4f8;
   --fg:#222;
   --card:#fff;
@@ -8,89 +8,56 @@
   --ok:#28a745;
 }
 
-* { box-sizing: border-box; }
-
-body {
+*{box-sizing:border-box}
+body{
   font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
   background: var(--bg);
   color: var(--fg);
-  margin: 0;
+  margin:0;
 }
-
-main {
-  max-width: 700px;
-  margin: 0 auto;
-  padding: 16px;
+main{max-width:700px;margin:0 auto;padding:16px}
+h1,h2{margin-top:0}
+input,button{
+  padding:10px;
+  margin:6px 0;
+  border-radius:8px;
+  border:1px solid #ccc;
+  width:100%;
+  font-size:1rem;
 }
-
-h1, h2, h3 {
-  margin-top: 0;
-}
-
-input, button, select {
-  font-size: 1rem;
-  padding: 8px;
-  margin: 4px 0;
-}
-
-button {
+button{
   background: var(--primary);
-  color: white;
-  border: none;
-  cursor: pointer;
+  color:#fff;
+  border:none;
+  cursor:pointer;
 }
-
-button.danger {
+button.danger{
   background: var(--danger);
 }
-
-button:hover {
-  opacity: 0.9;
+button:disabled{
+  opacity:0.6;
+  cursor:not-allowed;
 }
-
-ul {
-  list-style: none;
-  padding: 0;
+ul{list-style:none;padding:0}
+li{
+  background:var(--card);
+  margin:6px 0;
+  padding:10px;
+  border-radius:8px;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
 }
-
-li {
-  background: var(--card);
-  margin: 4px 0;
-  padding: 8px;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
+.card{
+  background:var(--card);
+  padding:10px;
+  border-radius:8px;
+  margin:10px 0;
 }
-
-.sats-config {
-  background: var(--card);
-  padding: 10px;
-  border-radius: 8px;
-  margin-top: 12px;
+.muted{color:var(--muted);font-size:0.9rem}
+.saldo{
+  font-size:2rem;
+  font-weight:bold;
 }
-
-.date-hint {
-  display: block;
-  font-size: 0.85rem;
-  color: var(--muted);
-  margin-bottom: 8px;
-}
-
-.expense-input {
-  display: flex;
-  gap: 4px;
-}
-
-.expense-input input {
-  flex: 1;
-}
-
-.cofre-icon {
-  width: 64px;
-  height: auto;
-  cursor: pointer;
-  transition: transform 0.2s ease;
-}
-.cofre-icon:hover {
-  transform: scale(1.08);
-}
+.saldo.positivo{color:var(--ok)}
+.saldo.negativo{color:var(--danger)}

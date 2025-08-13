@@ -19,75 +19,45 @@
 </head>
 <body>
   <main>
+    <!-- Tela de configuração inicial -->
     <section id="setup">
       <h1>Simple$</h1>
       <p>Informe o valor diário e a data de início:</p>
-
-      <input type="number" id="dailyAmount" placeholder="Valor diário (ex: 50)" />
-
-      <!-- Campo de data com legenda abaixo -->
+      <input type="text" id="dailyAmount" placeholder="Valor diário" inputmode="decimal">
       <input type="date" id="startDate" />
-      <div class="field-help">Defina a data de início</div>
+      <small class="date-hint">Defina a data de início</small>
 
-      <!-- Configuração da Taxa Sats (somente no setup) -->
-      <section id="sats-settings" class="card">
-        <h3>Taxa Sats</h3>
+      <div class="sats-config">
+        <h2>Taxa Sats</h2>
+        <label for="satsRate">Alíquota (%)</label>
+        <input type="number" id="satsRate" placeholder="Ex: 10" inputmode="decimal">
+      </div>
 
-        <label class="row">
-          <input type="checkbox" id="satsEnabled" />
-          <span>Ativar Taxa Sats</span>
-        </label>
-
-        <label class="row">
-          <span>Alíquota (%)</span>
-          <input type="number" id="satsRate" min="0" step="0.1" value="10" />
-        </label>
-
-        <p class="muted small">Cada gasto aplica a alíquota ao débito do dia e acumula no seu “cofre”.</p>
-      </section>
-
-      <button id="startButton">Iniciar</button>
+      <button id="startBtn">Iniciar</button>
     </section>
 
-    <section id="appSection" class="hidden">
-      <h2>Saldo do Dia</h2>
-      <div id="balanceDisplay">R$ 0,00</div>
+    <!-- Tela diária -->
+    <section id="appSection" style="display:none;">
+      <h1>Saldo do dia: <span id="dailyBalance">R$ 0,00</span></h1>
 
-      <!-- Tela diária: registrar gasto + lista -->
-      <h3>Registrar Gasto</h3>
-      <input type="number" id="expense" placeholder="Valor do gasto" />
-      <button id="addExpense">Adicionar</button>
+      <div class="expense-input">
+        <input type="text" id="expenseName" placeholder="Descrição do gasto">
+        <input type="text" id="expenseAmount" placeholder="Valor" inputmode="decimal">
+        <button id="addExpenseBtn">Adicionar</button>
+      </div>
 
-      <h3>Gastos do Dia</h3>
       <ul id="expenseList"></ul>
 
-      <button id="resetButton" class="danger">Resetar Tudo</button>
+      <button id="resetBtn" class="danger">Resetar Tudo</button>
 
-      <!-- Link para o Cofre Sats -->
       <p style="text-align:center; margin-top: 12px;">
-        <a href="cofre.html" class="link-muted">👛 Cofre Sats</a>
-      </p>
-
-      <!-- Rodapé/relatório da Taxa Sats -->
-      <footer id="sats-report" class="muted">
-        Taxa Sats aplicada hoje: <span id="satsToday">R$ 0,00</span> • Mês: <span id="satsMonth">R$ 0,00</span>
-      </footer>
-    </section>
-
-    <!-- Rodapé com link para a página interna sobre.html -->
-    <footer style="text-align: center; margin-top: 2rem; font-size: 0.9rem; color: #666;">
-      <p>
-        ℹ️ <a href="sobre.html" style="color: inherit; text-decoration: underline;">
-          Sobre, contato e licença
+        <a href="cofre.html">
+          <img src="cofre-porquinho.png" alt="Cofre Sats" class="cofre-icon">
         </a>
       </p>
-    </footer>
+    </section>
   </main>
 
-  <noscript>
-    <p style="color:red; text-align:center;">Este app requer JavaScript ativado.</p>
-  </noscript>
-
-  <script src="js/app.js" defer></script>
+  <script src="js/app.js"></script>
 </body>
 </html>

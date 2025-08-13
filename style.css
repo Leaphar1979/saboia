@@ -26,6 +26,25 @@ input, button {
   box-sizing: border-box;
 }
 
+/* Wrap para inserir o rótulo fantasma no input date */
+.input-wrap {
+  position: relative;
+}
+.input-wrap .input-hint {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #888;
+  pointer-events: none;
+  font-size: 0.95rem;
+}
+.input-wrap.has-value .input-hint,
+.input-wrap:focus-within .input-hint {
+  opacity: 0;
+  visibility: hidden;
+}
+
 /* Corrige alinhamento de checkbox (não deve ocupar 100%) */
 input[type="checkbox"] {
   width: auto;
@@ -117,7 +136,7 @@ li {
   margin-left: .5rem;
 }
 
-/* Card genérico */
+/* Card genérico (Sats settings) */
 .card {
   padding: 12px;
   background: #fff;

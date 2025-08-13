@@ -57,6 +57,7 @@
     .delta-pos { color: #28a745; }
     .delta-neg { color: #dc3545; }
     .muted { color: #666; }
+    .price-line { margin-top: 6px; font-size:.95rem; }
   </style>
 </head>
 <body>
@@ -67,11 +68,17 @@
       <div class="vault-container">
         <p>Total acumulado:</p>
         <div class="vault-balance" id="vaultTotal">R$ 0,00</div>
-        <small class="muted">Equivalente aproximado em BTC (valor fixo de referência)</small>
+
+        <div class="price-line muted">
+          1 BTC = <span id="btcPriceBRL">—</span> (fonte ao vivo)
+        </div>
+
+        <small class="muted">Equivalente em BTC</small>
         <div id="vaultBtc">₿ 0.00000000</div>
 
         <div class="vault-actions">
           <button id="btnPurchase" class="btn-outline">Registrar compra de BTC (zerar cofre)</button>
+          <button id="btnRefresh" class="btn-outline" title="Atualizar cotação e totais">Atualizar</button>
         </div>
       </div>
 
@@ -87,42 +94,121 @@
   </main>
 
   <script>
-    const SATS_VAULT_KEY = "satsVault/v1";
+    // === CHAVES ===
+    const SATS_VAULT_KEY  = "satsVault/v1";
     const SATS_LEDGER_KEY = "satsLedger/v1";
+    const PRICE_CACHE_KEY = "btcPriceBRL/cache";
+    const PRICE_TTL_MIN   = 10; // minutos
+
+    // === HELPERS ===
     const fmtBRL = n => Number(n||0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const fmtBTC = n => "₿ " + (Number(n||0)).toFixed(8);
     const round2 = n => Math.round((Number(n)+Number.EPSILON)*100)/100;
 
-    // valor aproximado do BTC em BRL (ajuste manual quando quiser)
-    const BTC_PRICE = 350000;
-
-    function loadVaultValue() {
+    // === STORAGE (app) ===
+    const loadVaultValue = () => {
       const v = parseFloat(localStorage.getItem(SATS_VAULT_KEY) || "0");
       return isNaN(v) ? 0 : v;
-    }
-    function setVaultValue(v) {
+    };
+    const setVaultValue = (v) =>
       localStorage.setItem(SATS_VAULT_KEY, String(Math.max(0, round2(v))));
-    }
 
-    function loadLedger() {
+    const loadLedger = () => {
       try { return JSON.parse(localStorage.getItem(SATS_LEDGER_KEY) || "[]"); }
       catch { return []; }
-    }
-    function saveLedger(arr) {
+    };
+    const saveLedger = (arr) =>
       localStorage.setItem(SATS_LEDGER_KEY, JSON.stringify(arr));
-    }
-    function addLedger(delta, type) {
+    const addLedger = (delta, type) => {
       if (!delta) return;
       const now = new Date();
       const item = {
         ts: now.toISOString(),
         date: now.toISOString().slice(0,10),
         delta: round2(delta),
-        type
+        type // 'apply'|'edit'|'delete'|'purchase'
       };
       const arr = loadLedger();
       arr.push(item);
       saveLedger(arr);
+    };
+
+    // === STORAGE (preço) ===
+    function loadCachedPrice() {
+      try {
+        const raw = localStorage.getItem(PRICE_CACHE_KEY);
+        if (!raw) return null;
+        const { price, ts } = JSON.parse(raw);
+        if (!price || !ts) return null;
+        const ageMin = (Date.now() - ts) / 60000;
+        if (ageMin > PRICE_TTL_MIN) return null;
+        return price; // BRL por BTC
+      } catch { return null; }
+    }
+    function saveCachedPrice(priceBRL) {
+      try {
+        localStorage.setItem(PRICE_CACHE_KEY, JSON.stringify({ price: priceBRL, ts: Date.now() }));
+      } catch {}
+    }
+
+    // === COTAÇÃO AO VIVO: CoinGecko → Binance (fallback) ===
+    async function fetchPriceBRL() {
+      // 1) CoinGecko
+      try {
+        const r = await fetch("https://api.coingecko.com/api/v3/simple/price?ids=bitcoin&vs_currencies=brl", { cache: "no-store" });
+        if (r.ok) {
+          const j = await r.json();
+          const price = Number(j?.bitcoin?.brl);
+          if (price > 0) return price;
+        }
+      } catch {}
+
+      // 2) Binance
+      try {
+        const r = await fetch("https://api.binance.com/api/v3/ticker/price?symbol=BTCBRL", { cache: "no-store" });
+        if (r.ok) {
+          const j = await r.json();
+          const price = Number(j?.price);
+          if (price > 0) return price;
+        }
+      } catch {}
+
+      // Sem preço ao vivo
+      return null;
+    }
+
+    async function getPriceBRL() {
+      const cached = loadCachedPrice();
+      if (cached) return cached;
+      const live = await fetchPriceBRL();
+      if (live) saveCachedPrice(live);
+      return live;
+    }
+
+    // === RENDER ===
+    function renderLedger(listEl) {
+      listEl.innerHTML = "";
+      const ledger = loadLedger().slice().reverse();
+      if (ledger.length === 0) {
+        listEl.innerHTML = "<li class='muted'>Nenhuma movimentação ainda.</li>";
+        return;
+      }
+      for (const item of ledger) {
+        const li = document.createElement("li");
+        const left = document.createElement("span");
+        const right = document.createElement("span");
+
+        const dateStr = item.date ? new Date(item.date).toLocaleDateString("pt-BR") : (item.ts||"").slice(0,10);
+        left.textContent = `${dateStr} — ${typeLabel(item.type)}`;
+
+        const delta = Number(item.delta||0);
+        right.textContent = (delta >= 0 ? "+" : "") + fmtBRL(delta);
+        right.className = delta >= 0 ? "delta-pos" : "delta-neg";
+
+        li.appendChild(left);
+        li.appendChild(right);
+        listEl.appendChild(li);
+      }
     }
 
     function typeLabel(t) {
@@ -135,36 +221,26 @@
       }
     }
 
-    function render() {
+    async function renderAll() {
       const vault = loadVaultValue();
       document.getElementById("vaultTotal").textContent = fmtBRL(vault);
-      document.getElementById("vaultBtc").textContent = fmtBTC(vault / BTC_PRICE);
 
-      const list = document.getElementById("vaultList");
-      list.innerHTML = "";
-      const ledger = loadLedger().slice().reverse(); // mais recentes primeiro
+      const price = await getPriceBRL();
+      const priceEl = document.getElementById("btcPriceBRL");
+      const vaultBtcEl = document.getElementById("vaultBtc");
 
-      if (ledger.length === 0) {
-        list.innerHTML = "<li class='muted'>Nenhuma movimentação ainda.</li>";
-        return;
+      if (price) {
+        priceEl.textContent = fmtBRL(price);
+        vaultBtcEl.textContent = fmtBTC(vault / price);
+        priceEl.classList.remove("muted");
+      } else {
+        // Fallback: sem internet/erros — mantém último equivalente e marca como indisponível
+        priceEl.textContent = "indisponível no momento";
+        priceEl.classList.add("muted");
+        // Mantém valor anterior do BTC exibido (se houver) — não recalcula sem preço
       }
 
-      ledger.forEach(item => {
-        const li = document.createElement("li");
-        const left = document.createElement("span");
-        const right = document.createElement("span");
-
-        const dateStr = item.date ? new Date(item.date).toLocaleDateString("pt-BR") : (item.ts || "").slice(0,10);
-        left.textContent = `${dateStr} — ${typeLabel(item.type)}`;
-
-        const delta = Number(item.delta || 0);
-        right.textContent = (delta >= 0 ? "+" : "") + fmtBRL(delta);
-        right.className = delta >= 0 ? "delta-pos" : "delta-neg";
-
-        li.appendChild(left);
-        li.appendChild(right);
-        list.appendChild(li);
-      });
+      renderLedger(document.getElementById("vaultList"));
 
       // estado do botão
       const btn = document.getElementById("btnPurchase");
@@ -173,19 +249,27 @@
       btn.style.cursor = vault <= 0 ? "not-allowed" : "pointer";
     }
 
+    // === AÇÕES ===
     function onPurchase() {
       const cur = loadVaultValue();
       if (cur <= 0) return;
       if (!confirm(`Confirmar: registrar compra de BTC e zerar cofre (${fmtBRL(cur)})?`)) return;
-
       addLedger(-cur, "purchase");
       setVaultValue(0);
-      render();
+      renderAll();
     }
 
+    function onRefresh() {
+      // força ignorar cache: limpa e renderiza novamente
+      localStorage.removeItem(PRICE_CACHE_KEY);
+      renderAll();
+    }
+
+    // === BOOT ===
     document.addEventListener("DOMContentLoaded", () => {
-      render();
+      renderAll();
       document.getElementById("btnPurchase").addEventListener("click", onPurchase);
+      document.getElementById("btnRefresh").addEventListener("click", onRefresh);
     });
   </script>
 </body>

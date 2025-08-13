@@ -22,8 +22,14 @@
     <section id="setup">
       <h1>Simple$</h1>
       <p>Informe o valor diário e a data de início:</p>
+
       <input type="number" id="dailyAmount" placeholder="Valor diário (ex: 50)" />
-      <input type="date" id="startDate" />
+
+      <!-- Campo de data com rótulo fantasma dentro da barra -->
+      <div class="input-wrap">
+        <input type="date" id="startDate" />
+        <span class="input-hint" id="hintStartDate">Defina a data de início</span>
+      </div>
 
       <!-- Configuração da Taxa Sats (somente no setup) -->
       <section id="sats-settings" class="card">
@@ -39,7 +45,7 @@
           <input type="number" id="satsRate" min="0" step="0.1" value="10" />
         </label>
 
-        <p class="muted small">Cada gasto aplica a alíquota ao débito do dia e acumula no seu “cofre” (modo A).</p>
+        <p class="muted small">Cada gasto aplica a alíquota ao débito do dia e acumula no seu “cofre”.</p>
       </section>
 
       <button id="startButton">Iniciar</button>

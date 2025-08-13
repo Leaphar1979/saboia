@@ -10,9 +10,11 @@
 
   <style>
     .vault-container {
-      background: var(--card);
+      background: #fff;
       padding: 16px;
-      border-radius: 8px;
+      border-radius: 12px;
+      box-shadow: 0 1px 4px rgba(0,0,0,.06);
+      border: 1px solid #eef1f5;
       text-align: center;
     }
     .vault-balance {
@@ -41,16 +43,11 @@
       margin-top: 16px;
       text-align: left;
     }
-    .vault-history h3 {
-      margin-bottom: 8px;
-    }
-    .vault-history ul {
-      padding: 0;
-      list-style: none;
-    }
+    .vault-history h3 { margin-bottom: 8px; }
+    .vault-history ul { padding: 0; list-style: none; }
     .vault-history li {
       padding: 6px;
-      background: var(--bg);
+      background: #f2f4f8;
       margin-bottom: 4px;
       border-radius: 6px;
       display: flex;
@@ -70,7 +67,7 @@
       <div class="vault-container">
         <p>Total acumulado:</p>
         <div class="vault-balance" id="vaultTotal">R$ 0,00</div>
-        <small class="muted">Equivalente aproximado em BTC</small>
+        <small class="muted">Equivalente aproximado em BTC (valor fixo de referência)</small>
         <div id="vaultBtc">₿ 0.00000000</div>
 
         <div class="vault-actions">
@@ -96,7 +93,7 @@
     const fmtBTC = n => "₿ " + (Number(n||0)).toFixed(8);
     const round2 = n => Math.round((Number(n)+Number.EPSILON)*100)/100;
 
-    // valor aproximado do BTC em BRL (ajuste quando quiser)
+    // valor aproximado do BTC em BRL (ajuste manual quando quiser)
     const BTC_PRICE = 350000;
 
     function loadVaultValue() {
@@ -119,9 +116,9 @@
       const now = new Date();
       const item = {
         ts: now.toISOString(),
-        date: now.toISOString().slice(0,10), // YYYY-MM-DD
+        date: now.toISOString().slice(0,10),
         delta: round2(delta),
-        type // 'apply'|'edit'|'delete'|'purchase'
+        type
       };
       const arr = loadLedger();
       arr.push(item);
@@ -169,7 +166,7 @@
         list.appendChild(li);
       });
 
-      // desabilita o botão se cofre já estiver zerado
+      // estado do botão
       const btn = document.getElementById("btnPurchase");
       btn.disabled = vault <= 0;
       btn.style.opacity = vault <= 0 ? .6 : 1;
@@ -181,9 +178,9 @@
       if (cur <= 0) return;
       if (!confirm(`Confirmar: registrar compra de BTC e zerar cofre (${fmtBRL(cur)})?`)) return;
 
-      addLedger(-cur, "purchase");  // saída
-      setVaultValue(0);             // zera cofre
-      render();                     // atualiza UI
+      addLedger(-cur, "purchase");
+      setVaultValue(0);
+      render();
     }
 
     document.addEventListener("DOMContentLoaded", () => {

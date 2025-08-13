@@ -24,14 +24,8 @@
       <p>Informe o valor diário e a data de início:</p>
       <input type="number" id="dailyAmount" placeholder="Valor diário (ex: 50)" />
       <input type="date" id="startDate" />
-      <button id="startButton">Iniciar</button>
-    </section>
 
-    <section id="appSection" class="hidden">
-      <h2>Saldo do Dia</h2>
-      <div id="balanceDisplay">R$ 0,00</div>
-
-      <!-- Painel Taxa Sats -->
+      <!-- Configuração da Taxa Sats (somente no setup) -->
       <section id="sats-settings" class="card">
         <h3>Taxa Sats (BTC)</h3>
         <label class="row">
@@ -46,13 +40,17 @@
           <input type="checkbox" id="satsCountsAgainstBudget" checked />
           Descontar taxa do saldo do dia (modo A)
         </label>
-        <div class="sats-cofre">
-          <div><strong>Cofre Sats (R$):</strong> <span id="satsVaultBRL">R$ 0,00</span></div>
-          <button id="satsConvertBtn" class="btn">Registrei a compra de BTC</button>
-        </div>
-        <p class="muted">Dica: no modo A, cada gasto “aperta” o saldo (disciplina extra). No modo B, acumula no Cofre sem afetar o saldo do dia.</p>
+        <p class="muted">No modo A, cada gasto “aperta” o saldo (disciplina extra). No modo B, acumula sem afetar o saldo do dia.</p>
       </section>
 
+      <button id="startButton">Iniciar</button>
+    </section>
+
+    <section id="appSection" class="hidden">
+      <h2>Saldo do Dia</h2>
+      <div id="balanceDisplay">R$ 0,00</div>
+
+      <!-- Layout diário original: registrar gasto + lista -->
       <h3>Registrar Gasto</h3>
       <input type="number" id="expense" placeholder="Valor do gasto" />
       <button id="addExpense">Adicionar</button>
@@ -62,6 +60,7 @@
 
       <button id="resetButton" class="danger">Resetar Tudo</button>
 
+      <!-- Informação da Taxa Sats permanece (relatório enxuto) -->
       <footer id="sats-report" class="muted">
         Taxa Sats aplicada hoje: <span id="satsToday">R$ 0,00</span> • Mês: <span id="satsMonth">R$ 0,00</span>
       </footer>

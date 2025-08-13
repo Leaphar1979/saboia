@@ -1,16 +1,15 @@
 document.addEventListener("DOMContentLoaded", () => {
-  const STORAGE_KEY = "saboyaAppData";
+  // === CHAVES DE STORAGE ===
+  const STORAGE_KEY = "saboyaAppData";    // estado do app
+  const SATS_SETTINGS_KEY = "satsSettings/v1"; // { rate }
+  const SATS_VAULT_KEY = "satsVault/v1";       // número BRL
+  const SATS_LEDGER_KEY = "satsLedger/v1";     // [{ ts, date, delta, type }]
 
-  // === SATS: chaves e helpers (somente Modo A) ===
-  const SATS_SETTINGS_KEY = "satsSettings/v1"; // { enabled, rate }
-  const SATS_VAULT_KEY = "satsVault/v1";      // número em BRL (sem UI)
-  const SATS_LEDGER_KEY = "satsLedger/v1";    // histórico [{ts,date,delta,type}]
-
-  const CURRENCY = "pt-BR";
-  const BRL = { style: "currency", currency: "BRL" };
-  const fmtBRL = (n) => Number(n).toLocaleString(CURRENCY, BRL);
+  // === FORMATADORES / HELPERS ===
+  const fmtBRL = (n) => Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
+  // aceita 100,50 e 100.50 (remove . milhar e normaliza , para .)
   function parseNumberSmart(s) {
     if (typeof s === "number") return s;
     if (s === null || s === undefined) return NaN;
@@ -21,239 +20,294 @@ document.addEventListener("DOMContentLoaded", () => {
     return isNaN(n) ? NaN : n;
   }
 
-  // settings & vault
+  function getTodayISO() {
+    const now = new Date();
+    now.setUTCHours(now.getUTCHours() - 3); // Brasília (UTC-3)
+    return now.toISOString().split("T")[0];
+  }
+
+  // === ESTADO / PERSISTÊNCIA ===
+  function loadData() {
+    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
+  }
+  function saveData(data) {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+  }
+
   function loadSatsSettings() {
-    const def = { enabled: false, rate: 10 };
+    const def = { rate: 10 }; // apenas alíquota; modo A implícito
     try { return { ...def, ...JSON.parse(localStorage.getItem(SATS_SETTINGS_KEY) || "{}") }; }
     catch { return def; }
   }
-  function saveSatsSettings(s) { localStorage.setItem(SATS_SETTINGS_KEY, JSON.stringify(s)); }
-  function getSatsVaultBRL() {
+  function saveSatsSettings(s) {
+    localStorage.setItem(SATS_SETTINGS_KEY, JSON.stringify(s));
+  }
+
+  function getVault() {
     const v = parseFloat(localStorage.getItem(SATS_VAULT_KEY) || "0");
     return isNaN(v) ? 0 : v;
   }
-  function setSatsVaultBRL(v) {
+  function setVault(v) {
     localStorage.setItem(SATS_VAULT_KEY, String(Math.max(0, round2(v))));
   }
 
-  // ledger
   function loadLedger() {
-    try { return JSON.parse(localStorage.getItem(SATS_LEDGER_KEY) || "[]"); } catch { return []; }
+    try { return JSON.parse(localStorage.getItem(SATS_LEDGER_KEY) || "[]"); }
+    catch { return []; }
   }
-  function saveLedger(arr) { localStorage.setItem(SATS_LEDGER_KEY, JSON.stringify(arr)); }
+  function saveLedger(arr) {
+    localStorage.setItem(SATS_LEDGER_KEY, JSON.stringify(arr));
+  }
   function addLedger(delta, type) {
+    // delta positivo = entrada no cofre; negativo = saída/estorno
     if (!delta) return;
     const now = new Date();
     const item = {
       ts: now.toISOString(),
-      date: now.toISOString().slice(0,10),
+      date: now.toISOString().slice(0, 10), // YYYY-MM-DD
       delta: round2(delta),
-      type // 'apply'|'edit'|'delete'|'purchase'
+      type, // 'apply' | 'edit' | 'delete' | 'purchase' (purchase é feito pelo cofre.html)
     };
     const arr = loadLedger();
     arr.push(item);
     saveLedger(arr);
   }
 
-  // elementos base
-  const startButton = document.getElementById("startButton");
-  const resetButton = document.getElementById("resetButton");
-  const addExpenseButton = document.getElementById("addExpense");
+  // === ELEMENTOS (IDs compatíveis com seu index.html atual) ===
+  const $setup = document.getElementById("setup");
+  const $app = document.getElementById("appSection");
 
-  const startDateInput = document.getElementById("startDate");
-  const dailyAmountInput = document.getElementById("dailyAmount");
-  const expenseInput = document.getElementById("expense");
+  const $dailyAmount = document.getElementById("dailyAmount");
+  const $startDate = document.getElementById("startDate");
+  const $satsRate = document.getElementById("satsRate");
+  const $startBtn = document.getElementById("startBtn");
 
-  const balanceDisplay = document.getElementById("balanceDisplay");
-  const expenseList = document.getElementById("expenseList");
+  const $dailyBalance = document.getElementById("dailyBalance");
+  const $expenseName = document.getElementById("expenseName");
+  const $expenseAmount = document.getElementById("expenseAmount");
+  const $addExpenseBtn = document.getElementById("addExpenseBtn");
+  const $expenseList = document.getElementById("expenseList");
+  const $resetBtn = document.getElementById("resetBtn");
 
-  const setupSection = document.getElementById("setup");
-  const appSection = document.getElementById("appSection");
-
-  // sats no setup
-  const satsEnabledEl = document.getElementById("satsEnabled");
-  const satsRateEl = document.getElementById("satsRate");
-
-  function getTodayDate() {
-    const now = new Date();
-    now.setUTCHours(now.getUTCHours() - 3); // UTC-3
-    return now.toISOString().split("T")[0];
+  // === CÁLCULOS ===
+  function sumEffectiveDebits(data) {
+    return (data.expenses || []).reduce((sum, e) => sum + (typeof e.effectiveDebit === "number" ? e.effectiveDebit : e.amount), 0);
   }
 
-  function loadData() { return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null; }
-  function saveData(data) { localStorage.setItem(STORAGE_KEY, JSON.stringify(data)); }
-
-  // débito efetivo (Modo A)
-  function sumTodayDebits(data) {
-    return data.expenses.reduce((sum, e) => {
-      const debit = typeof e.effectiveDebit === "number" ? e.effectiveDebit : e.amount;
-      return sum + debit;
-    }, 0);
-  }
-  function calculateBalance(data) {
-    return data.lastBalance + data.dailyAmount - sumTodayDebits(data);
+  function calculateDailyBalance(data) {
+    // saldo do dia atual = lastBalance + dailyAmount - soma(débitos efetivos do dia)
+    return round2((data.lastBalance || 0) + (data.dailyAmount || 0) - sumEffectiveDebits(data));
   }
 
-  function updateExpenseList(data) {
-    expenseList.innerHTML = "";
-    data.expenses.forEach((expense, index) => {
-      const li = document.createElement("li");
-
-      const left = document.createElement("div");
-      const amountSpan = document.createElement("span");
-      amountSpan.className = "amount";
-      amountSpan.textContent = `- ${fmtBRL(expense.amount)}`;
-      left.appendChild(amountSpan);
-
-      if (expense.satsTaxApplied && expense.satsTaxApplied > 0) {
-        const badge = document.createElement("span");
-        badge.className = "badge";
-        badge.textContent = `Taxa Sats: ${fmtBRL(expense.satsTaxApplied)}`;
-        left.appendChild(badge);
-      }
-
-      const right = document.createElement("div");
-      const editBtn = document.createElement("button");
-      editBtn.textContent = "Editar";
-      editBtn.className = "edit-btn";
-      editBtn.addEventListener("click", () => {
-        const newValue = prompt("Novo valor:", String(expense.amount).replace(".", ","));
-        const parsed = parseNumberSmart(newValue);
-        if (!isNaN(parsed) && parsed > 0) onEditExpense(data, index, parsed);
-      });
-
-      const deleteBtn = document.createElement("button");
-      deleteBtn.textContent = "Apagar";
-      deleteBtn.className = "delete-btn";
-      deleteBtn.addEventListener("click", () => onDeleteExpense(data, index));
-
-      right.appendChild(editBtn);
-      right.appendChild(deleteBtn);
-      li.appendChild(left);
-      li.appendChild(right);
-      expenseList.appendChild(li);
-    });
-  }
-
-  function checkNewDay(data) {
-    const today = getTodayDate();
+  function checkRollover(data) {
+    const today = getTodayISO();
     if (data.currentDate !== today) {
-      data.lastBalance = calculateBalance(data);
-      data.currentDate = today;
+      // fecha o dia anterior carregando saldo
+      data.lastBalance = calculateDailyBalance(data);
       data.expenses = [];
+      data.currentDate = today;
       saveData(data);
     }
   }
 
-  function updateSatsReport(data) {
-    const satsToday = data.expenses.reduce((sum, e) => sum + (Number(e.satsTaxApplied) || 0), 0);
-    const satsMonth = satsToday; // placeholder com base no V1
-    const elToday = document.getElementById("satsToday");
-    const elMonth = document.getElementById("satsMonth");
-    if (elToday) elToday.textContent = fmtBRL(round2(satsToday));
-    if (elMonth) elMonth.textContent = fmtBRL(round2(satsMonth));
+  // === UI ===
+  function renderExpenses(data) {
+    $expenseList.innerHTML = "";
+
+    (data.expenses || []).forEach((exp, idx) => {
+      const li = document.createElement("li");
+
+      const left = document.createElement("div");
+      left.style.display = "flex";
+      left.style.flexDirection = "column";
+
+      const topLine = document.createElement("div");
+      topLine.textContent = (exp.name ? exp.name + " — " : "") + `- ${fmtBRL(exp.amount)}`;
+      left.appendChild(topLine);
+
+      if (exp.satsTaxApplied && exp.satsTaxApplied > 0) {
+        const badge = document.createElement("span");
+        badge.className = "badge";
+        badge.textContent = `Taxa Sats: ${fmtBRL(exp.satsTaxApplied)}`;
+        left.appendChild(badge);
+      }
+
+      const right = document.createElement("div");
+      const btnEdit = document.createElement("button");
+      btnEdit.textContent = "Editar";
+      btnEdit.className = "edit-btn";
+      btnEdit.addEventListener("click", () => {
+        const newValStr = prompt("Novo valor:", String(exp.amount).replace(".", ","));
+        const parsed = parseNumberSmart(newValStr);
+        if (isNaN(parsed) || parsed <= 0) return;
+        onEditExpense(idx, parsed);
+      });
+
+      const btnDel = document.createElement("button");
+      btnDel.textContent = "Apagar";
+      btnDel.className = "delete-btn";
+      btnDel.addEventListener("click", () => onDeleteExpense(idx));
+
+      right.appendChild(btnEdit);
+      right.appendChild(btnDel);
+
+      li.appendChild(left);
+      li.appendChild(right);
+      $expenseList.appendChild(li);
+    });
   }
 
-  function updateDisplay(data) {
-    checkNewDay(data);
-    const balance = calculateBalance(data);
-    balanceDisplay.textContent = fmtBRL(balance);
-    balanceDisplay.classList.toggle("balance-negative", balance < 0);
-    balanceDisplay.classList.toggle("balance-positive", balance >= 0);
-    updateExpenseList(data);
-    updateSatsReport(data);
+  function renderBalance(data) {
+    $dailyBalance.textContent = fmtBRL(calculateDailyBalance(data));
+    $dailyBalance.classList.toggle("balance-negative", calculateDailyBalance(data) < 0);
+    $dailyBalance.classList.toggle("balance-positive", calculateDailyBalance(data) >= 0);
   }
 
-  function initApp(data) {
-    setupSection.classList.add("hidden");
-    appSection.classList.remove("hidden");
-    updateDisplay(data);
+  function updateUI() {
+    const data = loadData();
+    if (!data) return;
+
+    checkRollover(data);
+    renderBalance(data);
+    renderExpenses(data);
   }
 
-  // === Taxa Sats (aplica e registra no ledger) ===
-  function applySatsOnSpend(amountBRL) {
-    const s = loadSatsSettings();
-    if (!s.enabled || s.rate <= 0 || amountBRL <= 0) {
+  // === LÓGICA DA TAXA SATS (sempre modo A) ===
+  function applySatsOn(amountBRL) {
+    const { rate } = loadSatsSettings();
+    if (!rate || amountBRL <= 0) {
       return { effectiveDebit: amountBRL, satsTax: 0 };
     }
-    const satsTax = round2(amountBRL * (s.rate / 100));
-    setSatsVaultBRL(getSatsVaultBRL() + satsTax);
+    const satsTax = round2(amountBRL * (rate / 100));
+    // entra no cofre
+    setVault(getVault() + satsTax);
     addLedger(+satsTax, "apply");
-    const effective = round2(amountBRL + satsTax);
-    return { effectiveDebit: effective, satsTax };
+    // modo A: taxa impacta o débito do dia
+    return { effectiveDebit: round2(amountBRL + satsTax), satsTax };
   }
 
-  // ações de gasto
-  function onAddExpenseValue(value) {
-    const data = loadData();
-    const { effectiveDebit, satsTax } = applySatsOnSpend(value);
-    data.expenses.push({ amount: value, effectiveDebit, satsTaxApplied: satsTax });
-    saveData(data);
-    updateDisplay(data);
-  }
+  // === AÇÕES ===
+  function onStart() {
+    const daily = parseNumberSmart($dailyAmount.value);
+    const startDate = $startDate.value;
+    const rate = parseNumberSmart($satsRate.value);
 
-  function onDeleteExpense(data, index) {
-    const expense = data.expenses[index];
-    if (!expense) return;
-    const tax = Number(expense.satsTaxApplied || 0);
-    if (tax > 0) {
-      setSatsVaultBRL(getSatsVaultBRL() - tax);
-      addLedger(-tax, "delete");
-    }
-    data.expenses.splice(index, 1);
-    saveData(data);
-    updateDisplay(data);
-  }
-
-  function onEditExpense(data, index, newAmount) {
-    const old = data.expenses[index];
-    if (!old) return;
-    const oldTax = Number(old.satsTaxApplied || 0);
-    if (oldTax > 0) {
-      setSatsVaultBRL(getSatsVaultBRL() - oldTax);
-      addLedger(-oldTax, "edit");
-    }
-    const { effectiveDebit, satsTax } = applySatsOnSpend(Number(newAmount));
-    data.expenses[index] = { ...old, amount: Number(newAmount), effectiveDebit, satsTaxApplied: satsTax };
-    saveData(data);
-    updateDisplay(data);
-  }
-
-  // Boot
-  const existingData = loadData();
-  if (existingData) initApp(existingData);
-
-  // Listeners
-  document.getElementById("startButton")?.addEventListener("click", () => {
-    const dailyAmount = parseNumberSmart(dailyAmountInput.value);
-    const startDate = startDateInput.value;
-    const today = getTodayDate();
-    if (!startDate || isNaN(dailyAmount) || dailyAmount <= 0) {
-      alert("Preencha os campos corretamente.");
+    if (!startDate || isNaN(daily) || daily <= 0) {
+      alert("Preencha corretamente o valor diário e a data de início.");
       return;
     }
-    const s = loadSatsSettings();
-    s.enabled = !!document.getElementById("satsEnabled")?.checked;
-    s.rate = Math.max(0, parseNumberSmart(document.getElementById("satsRate")?.value || "0"));
-    saveSatsSettings(s);
-    const data = { startDate, dailyAmount, expenses: [], currentDate: today, lastBalance: 0 };
+
+    // salva sats
+    saveSatsSettings({ rate: Math.max(0, isNaN(rate) ? 0 : rate) });
+
+    // inicia app
+    const data = {
+      startDate,
+      dailyAmount: daily,
+      lastBalance: 0,
+      currentDate: getTodayISO(),
+      expenses: []
+    };
     saveData(data);
-    initApp(data);
-  });
 
-  document.getElementById("addExpense")?.addEventListener("click", () => {
-    const value = parseNumberSmart(expenseInput.value);
-    if (isNaN(value) || value <= 0) return alert("Valor inválido.");
-    onAddExpenseValue(value);
-    expenseInput.value = "";
-  });
+    // troca de tela
+    $setup.style.display = "none";
+    $app.style.display = "";
+    updateUI();
+  }
 
-  document.getElementById("resetButton")?.addEventListener("click", () => {
-    if (!confirm("Tem certeza que deseja apagar TODOS os dados (incluindo Taxa Sats, Cofre e Ledger)?")) return;
+  function onAddExpense() {
+    const data = loadData();
+    if (!data) return;
+
+    const name = ($expenseName.value || "").trim();
+    const val = parseNumberSmart($expenseAmount.value);
+    if (isNaN(val) || val <= 0) {
+      alert("Informe um valor válido para o gasto.");
+      return;
+    }
+
+    const { effectiveDebit, satsTax } = applySatsOn(val);
+    data.expenses.push({
+      name,
+      amount: val,
+      effectiveDebit,
+      satsTaxApplied: satsTax
+    });
+    saveData(data);
+
+    // limpa campos
+    $expenseName.value = "";
+    $expenseAmount.value = "";
+
+    updateUI();
+  }
+
+  function onDeleteExpense(index) {
+    const data = loadData();
+    if (!data) return;
+    const exp = data.expenses[index];
+    if (!exp) return;
+
+    // estorna a taxa do cofre (se existir)
+    const tax = Number(exp.satsTaxApplied || 0);
+    if (tax > 0) {
+      setVault(getVault() - tax);
+      addLedger(-tax, "delete");
+    }
+
+    data.expenses.splice(index, 1);
+    saveData(data);
+    updateUI();
+  }
+
+  function onEditExpense(index, newAmount) {
+    const data = loadData();
+    if (!data) return;
+    const exp = data.expenses[index];
+    if (!exp) return;
+
+    // estorna taxa antiga do cofre, se houver
+    const oldTax = Number(exp.satsTaxApplied || 0);
+    if (oldTax > 0) {
+      setVault(getVault() - oldTax);
+      addLedger(-oldTax, "edit");
+    }
+
+    // aplica taxa nova sobre o novo valor
+    const { effectiveDebit, satsTax } = applySatsOn(Number(newAmount));
+    data.expenses[index] = {
+      ...exp,
+      amount: Number(newAmount),
+      effectiveDebit,
+      satsTaxApplied: satsTax
+    };
+    saveData(data);
+    updateUI();
+  }
+
+  function onResetAll() {
+    if (!confirm("Tem certeza que deseja resetar TUDO (dados, Taxa Sats, Cofre e histórico)?")) return;
     localStorage.removeItem(STORAGE_KEY);
     localStorage.removeItem(SATS_SETTINGS_KEY);
     localStorage.removeItem(SATS_VAULT_KEY);
     localStorage.removeItem(SATS_LEDGER_KEY);
     location.reload();
-  });
+  }
+
+  // === BOOT ===
+  const existing = loadData();
+  if (existing) {
+    $setup.style.display = "none";
+    $app.style.display = "";
+    updateUI();
+  } else {
+    $setup.style.display = "";
+    $app.style.display = "none";
+  }
+
+  // === LISTENERS ===
+  $startBtn?.addEventListener("click", onStart);
+  $addExpenseBtn?.addEventListener("click", onAddExpense);
+  $resetBtn?.addEventListener("click", onResetAll);
 });

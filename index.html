@@ -4,43 +4,85 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simple$ - Controle Diário</title>
+
   <link rel="stylesheet" href="style.css" />
   <meta name="theme-color" content="#f7941d">
+
+  <!-- PWA (opcional, já existia no projeto) -->
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="apple-touch-icon.png">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-title" content="Simple$">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
 </head>
 <body>
   <main>
-    <section id="setupSection">
+    <!-- SETUP INICIAL -->
+    <section id="setup">
       <h1>Simple$</h1>
       <p>Informe o valor diário e a data de início:</p>
-      <input type="number" id="dailyValue" placeholder="Valor diário" />
+
+      <input type="number" id="dailyAmount" placeholder="Valor diário (ex: 50)" />
       <input type="date" id="startDate" />
-      <div id="satsConfig" class="card">
-        <label>
-          <input type="checkbox" id="enableSats" />
-          Ativar Taxa Sats
+      <div class="field-help">Defina a data de início</div>
+
+      <!-- Configuração da Taxa Sats (somente no setup) -->
+      <section id="sats-settings" class="card">
+        <h3>Taxa Sats</h3>
+
+        <label class="row">
+          <input type="checkbox" id="satsEnabled" />
+          <span>Ativar Taxa Sats</span>
         </label>
-        <label for="satsRate">Alíquota (%):</label>
-        <input type="number" id="satsRate" placeholder="Ex: 10" />
-        <p class="muted">Parte de cada gasto será enviada ao Cofre Sats.</p>
-      </div>
-      <button id="startBtn">Iniciar</button>
+
+        <label class="row">
+          <span>Alíquota (%)</span>
+          <input type="number" id="satsRate" min="0" step="0.1" value="10" />
+        </label>
+
+        <p class="muted small">Cada gasto aplica a alíquota ao débito do dia e acumula no seu “cofre”.</p>
+      </section>
+
+      <button id="startButton">Iniciar</button>
     </section>
 
-    <section id="appSection" style="display:none;">
-      <h1>Saldo do dia</h1>
-      <div id="saldoDia" class="saldo">R$ 0,00</div>
-      <input type="number" id="gasto" placeholder="Registrar gasto" />
-      <button id="addExpenseBtn">Adicionar</button>
-      <ul id="listaGastos"></ul>
-      <button id="resetBtn" class="danger">Resetar Tudo</button>
+    <!-- TELA DIÁRIA -->
+    <section id="appSection" class="hidden">
+      <h2>Saldo do Dia</h2>
+      <div id="balanceDisplay">R$ 0,00</div>
+
+      <h3>Registrar Gasto</h3>
+      <input type="number" id="expense" placeholder="Valor do gasto" />
+      <button id="addExpense">Adicionar</button>
+
+      <h3>Gastos do Dia</h3>
+      <ul id="expenseList"></ul>
+
+      <button id="resetButton" class="danger">Resetar Tudo</button>
+
+      <!-- Porquinho como botão do Cofre -->
       <p style="text-align:center; margin-top: 12px;">
         <a href="cofre.html" aria-label="Abrir Cofre Sats">
           <img src="cofre-porquinho.png" alt="Cofre Sats" width="80" height="80" style="vertical-align:middle;border-radius:12px;">
         </a>
       </p>
+
+      <!-- Rodapé/relatório da Taxa Sats -->
+      <footer id="sats-report" class="muted">
+        Taxa Sats aplicada hoje: <span id="satsToday">R$ 0,00</span> • Mês: <span id="satsMonth">R$ 0,00</span>
+      </footer>
     </section>
+
+    <!-- Rodapé com link para a página interna -->
+    <footer style="text-align: center; margin-top: 2rem; font-size: 0.9rem; color: #666;">
+      <p>ℹ️ <a href="sobre.html" style="color: inherit; text-decoration: underline;">Sobre, contato e licença</a></p>
+    </footer>
   </main>
 
-  <script src="app.js"></script>
+  <noscript>
+    <p style="color:red; text-align:center;">Este app requer JavaScript ativado.</p>
+  </noscript>
+
+  <script src="js/app.js" defer></script>
 </body>
 </html>

@@ -7,8 +7,20 @@ document.addEventListener("DOMContentLoaded", () => {
 
   const CURRENCY = "pt-BR";
   const BRL = { style: "currency", currency: "BRL" };
-  const fmtBRL = (n) => n.toLocaleString(CURRENCY, BRL);
+  const fmtBRL = (n) => Number(n).toLocaleString(CURRENCY, BRL);
   const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
+
+  // aceita 100,50 ou 100.50 (remove . como milhar e usa , como decimal)
+  function parseNumberSmart(s) {
+    if (typeof s === "number") return s;
+    if (s === null || s === undefined) return NaN;
+    s = String(s).trim();
+    if (!s) return NaN;
+    // remove separador de milhar e normaliza decimal
+    s = s.replace(/\./g, "").replace(/,/g, ".");
+    const n = Number(s);
+    return isNaN(n) ? NaN : n;
+  }
 
   function loadSatsSettings() {
     const def = { enabled: false, rate: 10, countsAgainstBudget: true };
@@ -68,7 +80,7 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
 
-  // Agora soma gastos considerando effectiveDebit (se existir) para suportar modo A
+  // Soma gastos considerando effectiveDebit (para suportar modo A)
   function sumTodayDebits(data) {
     return data.expenses.reduce((sum, e) => {
       const debit = typeof e.effectiveDebit === "number" ? e.effectiveDebit : e.amount;
@@ -93,14 +105,11 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const amountSpan = document.createElement("span");
       amountSpan.className = "amount";
-      amountSpan.textContent = `- ${expense.amount.toLocaleString("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-      })}`;
+      amountSpan.textContent = `- ${fmtBRL(expense.amount)}`;
 
       left.appendChild(amountSpan);
 
-      // Exibir badge da taxa Sats, se houver
+      // Badge da taxa Sats, se houver
       if (expense.satsTaxApplied && expense.satsTaxApplied > 0) {
         const badge = document.createElement("span");
         badge.className = "badge";
@@ -115,8 +124,8 @@ document.addEventListener("DOMContentLoaded", () => {
       editBtn.textContent = "Editar";
       editBtn.className = "edit-btn";
       editBtn.addEventListener("click", () => {
-        const newValue = prompt("Novo valor:", expense.amount);
-        const parsed = parseFloat(newValue);
+        const newValue = prompt("Novo valor:", String(expense.amount).replace(".", ","));
+        const parsed = parseNumberSmart(newValue);
         if (!isNaN(parsed) && parsed > 0) {
           onEditExpense(data, index, parsed);
         }
@@ -151,19 +160,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateSatsReport(data) {
-    // somar taxa Sats do dia e do mês
-    const todayStr = getTodayDate();
-    let satsToday = 0;
-    let satsMonth = 0;
-
-    // Hoje: somatório das despesas do array atual (dia corrente)
-    satsToday = data.expenses.reduce((sum, e) => sum + (Number(e.satsTaxApplied) || 0), 0);
-
-    // Mês: vamos percorrer apenas o dia atual (porque o V1 não mantém histórico de dias anteriores no array)
-    // Obs: Como o V1 só guarda o dia corrente em `expenses`, o total mensal não tem base histórica.
-    // Para não perder utilidade, manteremos o total do dia e o Cofre Sats (que é acumulativo).
-    // Se quiser histórico mensal real no futuro, precisamos persistir dias anteriores.
-    satsMonth = satsToday;
+    // somar taxa Sats do dia (V1 só mantém o dia corrente)
+    const satsToday = data.expenses.reduce((sum, e) => sum + (Number(e.satsTaxApplied) || 0), 0);
+    const satsMonth = satsToday; // placeholder (sem histórico mensal no V1)
 
     const elToday = document.getElementById("satsToday");
     const elMonth = document.getElementById("satsMonth");
@@ -175,7 +174,7 @@ document.addEventListener("DOMContentLoaded", () => {
     checkNewDay(data);
 
     const balance = calculateBalance(data);
-    balanceDisplay.textContent = balance.toLocaleString("pt-BR", BRL);
+    balanceDisplay.textContent = fmtBRL(balance);
 
     // Definir cor: verde se >= 0, vermelho se < 0
     balanceDisplay.classList.toggle("balance-negative", balance < 0);
@@ -290,7 +289,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === Listeners base ===
   const startClick = () => {
-    const dailyAmount = parseFloat(dailyAmountInput.value);
+    const dailyAmount = parseNumberSmart(dailyAmountInput.value);
     const startDate = startDateInput.value;
     const today = getTodayDate();
 
@@ -312,7 +311,7 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const addExpenseClick = () => {
-    const value = parseFloat(expenseInput.value);
+    const value = parseNumberSmart(expenseInput.value);
     if (isNaN(value) || value <= 0) {
       alert("Valor inválido.");
       return;
@@ -322,11 +321,11 @@ document.addEventListener("DOMContentLoaded", () => {
   };
 
   const resetClick = () => {
-    if (confirm("Tem certeza que deseja apagar todos os dados?")) {
+    if (confirm("Tem certeza que deseja apagar TODOS os dados (incluindo Taxa Sats e Cofre)?")) {
       localStorage.removeItem(STORAGE_KEY);
-      // Também zerar configurações e cofre, se desejar reset total:
-      // localStorage.removeItem(SATS_SETTINGS_KEY);
-      // localStorage.removeItem(SATS_VAULT_KEY);
+      // Reset TOTAL: também limpa configurações e cofre Sats
+      localStorage.removeItem(SATS_SETTINGS_KEY);
+      localStorage.removeItem(SATS_VAULT_KEY);
       location.reload();
     }
   };
@@ -344,7 +343,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   satsRateEl?.addEventListener("input", () => {
     const cur = loadSatsSettings();
-    cur.rate = Math.max(0, parseFloat(satsRateEl.value || "0"));
+    cur.rate = Math.max(0, parseNumberSmart(satsRateEl.value || "0"));
     saveSatsSettings(cur);
   });
 

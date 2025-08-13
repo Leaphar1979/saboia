@@ -4,60 +4,43 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Simple$ - Controle Diário</title>
-
   <link rel="stylesheet" href="style.css" />
-
-  <!-- Ícone para iPhone (tela inicial) -->
-  <link rel="apple-touch-icon" href="apple-touch-icon.png">
-  <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-title" content="Simple$">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
-
-  <!-- Manifesto para Android (PWA) -->
-  <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#f7941d">
 </head>
 <body>
   <main>
-    <!-- Tela de configuração inicial -->
-    <section id="setup">
+    <section id="setupSection">
       <h1>Simple$</h1>
       <p>Informe o valor diário e a data de início:</p>
-      <input type="text" id="dailyAmount" placeholder="Valor diário" inputmode="decimal">
+      <input type="number" id="dailyValue" placeholder="Valor diário" />
       <input type="date" id="startDate" />
-      <small class="date-hint">Defina a data de início</small>
-
-      <div class="sats-config">
-        <h2>Taxa Sats</h2>
-        <label for="satsRate">Alíquota (%)</label>
-        <input type="number" id="satsRate" placeholder="Ex: 10" inputmode="decimal">
+      <div id="satsConfig" class="card">
+        <label>
+          <input type="checkbox" id="enableSats" />
+          Ativar Taxa Sats
+        </label>
+        <label for="satsRate">Alíquota (%):</label>
+        <input type="number" id="satsRate" placeholder="Ex: 10" />
+        <p class="muted">Parte de cada gasto será enviada ao Cofre Sats.</p>
       </div>
-
       <button id="startBtn">Iniciar</button>
     </section>
 
-    <!-- Tela diária -->
     <section id="appSection" style="display:none;">
-      <h1>Saldo do dia: <span id="dailyBalance">R$ 0,00</span></h1>
-
-      <div class="expense-input">
-        <input type="text" id="expenseName" placeholder="Descrição do gasto">
-        <input type="text" id="expenseAmount" placeholder="Valor" inputmode="decimal">
-        <button id="addExpenseBtn">Adicionar</button>
-      </div>
-
-      <ul id="expenseList"></ul>
-
+      <h1>Saldo do dia</h1>
+      <div id="saldoDia" class="saldo">R$ 0,00</div>
+      <input type="number" id="gasto" placeholder="Registrar gasto" />
+      <button id="addExpenseBtn">Adicionar</button>
+      <ul id="listaGastos"></ul>
       <button id="resetBtn" class="danger">Resetar Tudo</button>
-
       <p style="text-align:center; margin-top: 12px;">
-        <a href="cofre.html">
-          <img src="cofre-porquinho.png" alt="Cofre Sats" class="cofre-icon">
+        <a href="cofre.html" aria-label="Abrir Cofre Sats">
+          <img src="cofre-porquinho.png" alt="Cofre Sats" width="80" height="80" style="vertical-align:middle;border-radius:12px;">
         </a>
       </p>
     </section>
   </main>
 
-  <script src="js/app.js"></script>
+  <script src="app.js"></script>
 </body>
 </html>

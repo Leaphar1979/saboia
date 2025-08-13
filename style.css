@@ -26,6 +26,13 @@ input, button {
   box-sizing: border-box;
 }
 
+/* Corrige alinhamento de checkbox (não deve ocupar 100%) */
+input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  transform: translateY(1px);
+}
+
 button {
   background-color: #007bff;
   color: #fff;
@@ -56,9 +63,9 @@ button.danger:hover {
   margin-top: 1rem;
 }
 
-/* NOVAS CLASSES DE COR */
-.balance-positive { color: #28a745; } /* verde */
-.balance-negative { color: #dc3545; } /* vermelho */
+/* Cores de saldo */
+.balance-positive { color: #28a745; }
+.balance-negative { color: #dc3545; }
 
 ul {
   list-style-type: none;
@@ -73,22 +80,6 @@ li {
   align-items: center;
   gap: .5rem;
   flex-wrap: wrap;
-}
-
-.expense-meta {
-  display: flex;
-  gap: .5rem;
-  align-items: center;
-  flex-wrap: wrap;
-}
-
-.badge {
-  font-size: .78rem;
-  padding: .12rem .4rem;
-  border-radius: .5rem;
-  background: #f2f4f8;
-  color: #555;
-  border: 1px solid #e3e6ea;
 }
 
 .edit-btn, .delete-btn {
@@ -115,8 +106,19 @@ li {
   background-color: #c82333;
 }
 
-/* Painel Taxa Sats (agora apenas no setup) */
-#sats-settings {
+/* Badge da Taxa Sats nos itens */
+.badge {
+  font-size: .78rem;
+  padding: .12rem .4rem;
+  border-radius: .5rem;
+  background: #f2f4f8;
+  color: #555;
+  border: 1px solid #e3e6ea;
+  margin-left: .5rem;
+}
+
+/* Card genérico */
+.card {
   padding: 12px;
   background: #fff;
   border-radius: 12px;
@@ -124,17 +126,25 @@ li {
   margin: 16px 0 8px;
   border: 1px solid #eef1f5;
 }
-#sats-settings h3 { margin: 0 0 8px; }
-#sats-settings .row {
+
+.card h3 { margin: 0 0 8px; }
+
+/* Linhas com label e input */
+.row {
   display: flex;
   align-items: center;
   gap: 8px;
   margin: 8px 0;
 }
-#sats-settings input[type="number"] { max-width: 120px; }
-.muted { color: #666; font-size: .9rem; }
 
-/* Responsividade para mobile */
+.row > span {
+  min-width: 120px;
+}
+
+.muted { color: #666; }
+.small { font-size: .9rem; }
+
+/* Responsividade */
 @media (max-width: 480px) {
   main {
     padding: 1rem;
@@ -164,5 +174,15 @@ li {
   .edit-btn, .delete-btn {
     width: 100%;
     margin: 0.25rem 0 0 0;
+  }
+
+  .row {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .row > span {
+    min-width: 0;
+    flex: 1 1 auto;
   }
 }

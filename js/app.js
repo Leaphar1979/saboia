@@ -1,28 +1,28 @@
 document.addEventListener("DOMContentLoaded", () => {
   const STORAGE_KEY = "saboyaAppData";
 
-  // === SATS: chaves e helpers ===
-  const SATS_SETTINGS_KEY = "satsSettings/v1";
-  const SATS_VAULT_KEY = "satsVault/v1"; // valor acumulado em BRL (fica invisível na UI diária, mas continua funcionando)
+  // === SATS: chaves e helpers (somente Modo A) ===
+  const SATS_SETTINGS_KEY = "satsSettings/v1"; // { enabled, rate }
+  const SATS_VAULT_KEY = "satsVault/v1";      // número em BRL (sem UI)
 
   const CURRENCY = "pt-BR";
   const BRL = { style: "currency", currency: "BRL" };
   const fmtBRL = (n) => Number(n).toLocaleString(CURRENCY, BRL);
   const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
-  // aceita 100,50 ou 100.50 (remove . como milhar e usa , como decimal)
+  // aceita 100,50 ou 100.50
   function parseNumberSmart(s) {
     if (typeof s === "number") return s;
     if (s === null || s === undefined) return NaN;
     s = String(s).trim();
     if (!s) return NaN;
-    s = s.replace(/\./g, "").replace(/,/g, "."); // remove milhar e normaliza decimal
+    s = s.replace(/\./g, "").replace(/,/g, "."); // remove milhar / normaliza decimal
     const n = Number(s);
     return isNaN(n) ? NaN : n;
   }
 
   function loadSatsSettings() {
-    const def = { enabled: false, rate: 10, countsAgainstBudget: true };
+    const def = { enabled: false, rate: 10 };
     try {
       return { ...def, ...JSON.parse(localStorage.getItem(SATS_SETTINGS_KEY) || "{}") };
     } catch {
@@ -55,10 +55,9 @@ document.addEventListener("DOMContentLoaded", () => {
   const setupSection = document.getElementById("setup");
   const appSection = document.getElementById("appSection");
 
-  // === elementos SATS (somente no setup) ===
+  // === elementos SATS do setup ===
   const satsEnabledEl = document.getElementById("satsEnabled");
   const satsRateEl = document.getElementById("satsRate");
-  const satsCountsEl = document.getElementById("satsCountsAgainstBudget");
 
   function getTodayDate() {
     const now = new Date();
@@ -74,7 +73,7 @@ document.addEventListener("DOMContentLoaded", () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   }
 
-  // Soma gastos considerando effectiveDebit (para suportar modo A)
+  // Soma gastos considerando effectiveDebit (Modo A)
   function sumTodayDebits(data) {
     return data.expenses.reduce((sum, e) => {
       const debit = typeof e.effectiveDebit === "number" ? e.effectiveDebit : e.amount;
@@ -84,8 +83,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   function calculateBalance(data) {
     const expensesToday = sumTodayDebits(data);
-    const balance = data.lastBalance + data.dailyAmount - expensesToday;
-    return balance;
+    return data.lastBalance + data.dailyAmount - expensesToday;
   }
 
   function updateExpenseList(data) {
@@ -95,20 +93,16 @@ document.addEventListener("DOMContentLoaded", () => {
       const li = document.createElement("li");
 
       const left = document.createElement("div");
-      left.className = "expense-meta";
-
       const amountSpan = document.createElement("span");
       amountSpan.className = "amount";
       amountSpan.textContent = `- ${fmtBRL(expense.amount)}`;
-
       left.appendChild(amountSpan);
 
-      // Badge da taxa Sats, se houver
+      // Badge da Taxa Sats (se aplicada)
       if (expense.satsTaxApplied && expense.satsTaxApplied > 0) {
         const badge = document.createElement("span");
         badge.className = "badge";
-        const counted = expense.satsCountsAgainstBudget ? "A" : "B";
-        badge.textContent = `Taxa Sats: ${fmtBRL(expense.satsTaxApplied)} (modo ${counted})`;
+        badge.textContent = `Taxa Sats: ${fmtBRL(expense.satsTaxApplied)}`;
         left.appendChild(badge);
       }
 
@@ -154,9 +148,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateSatsReport(data) {
-    // somar taxa Sats do dia (V1 só mantém o dia corrente)
+    // V1 armazena apenas o dia corrente. Usamos o total do dia para "Mês" como placeholder.
     const satsToday = data.expenses.reduce((sum, e) => sum + (Number(e.satsTaxApplied) || 0), 0);
-    const satsMonth = satsToday; // placeholder (sem histórico mensal no V1)
+    const satsMonth = satsToday;
 
     const elToday = document.getElementById("satsToday");
     const elMonth = document.getElementById("satsMonth");
@@ -170,7 +164,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const balance = calculateBalance(data);
     balanceDisplay.textContent = fmtBRL(balance);
 
-    // Definir cor: verde se >= 0, vermelho se < 0
+    // cor: verde se >= 0, vermelho se < 0
     balanceDisplay.classList.toggle("balance-negative", balance < 0);
     balanceDisplay.classList.toggle("balance-positive", balance >= 0);
 
@@ -181,40 +175,34 @@ document.addEventListener("DOMContentLoaded", () => {
   function initApp(data) {
     setupSection.classList.add("hidden");
     appSection.classList.remove("hidden");
-
-    // Não há painel de Sats na tela diária — apenas usamos as configs salvas
     updateDisplay(data);
   }
 
-  // === Aplicar Taxa Sats a um gasto ===
+  // === Aplicar Taxa Sats (sempre Modo A) ===
   /**
-   * @param {number} amountBRL - valor da despesa (positivo)
-   * @returns {{effectiveDebit:number, satsTax:number, counted:boolean}}
+   * @param {number} amountBRL - valor da despesa
+   * @returns {{effectiveDebit:number, satsTax:number}}
    */
   function applySatsOnSpend(amountBRL) {
     const s = loadSatsSettings();
     if (!s.enabled || s.rate <= 0 || amountBRL <= 0) {
-      return { effectiveDebit: amountBRL, satsTax: 0, counted: false };
+      return { effectiveDebit: amountBRL, satsTax: 0 };
     }
     const satsTax = round2(amountBRL * (s.rate / 100));
-    setSatsVaultBRL(getSatsVaultBRL() + satsTax); // ainda acumulamos no Cofre (sem exibir)
-
-    const effective = s.countsAgainstBudget ? round2(amountBRL + satsTax) : amountBRL;
-    return { effectiveDebit: effective, satsTax, counted: s.countsAgainstBudget };
+    setSatsVaultBRL(getSatsVaultBRL() + satsTax); // cofre silencioso
+    const effective = round2(amountBRL + satsTax); // SEMPRE modo A
+    return { effectiveDebit: effective, satsTax };
   }
 
   // === Lançar gasto ===
   function onAddExpenseValue(value) {
     const data = loadData();
-    // aplica taxa Sats
-    const { effectiveDebit, satsTax, counted } = applySatsOnSpend(value);
+    const { effectiveDebit, satsTax } = applySatsOnSpend(value);
 
-    // salva despesa com campos extras
     data.expenses.push({
       amount: value,
       effectiveDebit: effectiveDebit,
-      satsTaxApplied: satsTax,
-      satsCountsAgainstBudget: counted
+      satsTaxApplied: satsTax
     });
 
     saveData(data);
@@ -226,7 +214,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const expense = data.expenses[index];
     if (!expense) return;
 
-    // reverter cofre
     const tax = Number(expense.satsTaxApplied || 0);
     if (tax > 0) {
       setSatsVaultBRL(getSatsVaultBRL() - tax);
@@ -237,27 +224,23 @@ document.addEventListener("DOMContentLoaded", () => {
     updateDisplay(data);
   }
 
-  // === Edição de gasto: reverte taxa antiga, aplica nova ===
+  // === Edição de gasto: reverte taxa antiga, aplica nova (modo A) ===
   function onEditExpense(data, index, newAmount) {
     const old = data.expenses[index];
     if (!old) return;
 
-    // reverter cofre da taxa antiga
     const oldTax = Number(old.satsTaxApplied || 0);
     if (oldTax > 0) {
       setSatsVaultBRL(getSatsVaultBRL() - oldTax);
     }
 
-    // aplicar nova taxa sobre o novo valor
-    const { effectiveDebit, satsTax, counted } = applySatsOnSpend(Number(newAmount));
+    const { effectiveDebit, satsTax } = applySatsOnSpend(Number(newAmount));
 
-    // atualizar o registro
     data.expenses[index] = {
       ...old,
       amount: Number(newAmount),
       effectiveDebit: effectiveDebit,
-      satsTaxApplied: satsTax,
-      satsCountsAgainstBudget: counted
+      satsTaxApplied: satsTax
     };
 
     saveData(data);
@@ -285,7 +268,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const s = loadSatsSettings();
     s.enabled = !!satsEnabledEl?.checked;
     s.rate = Math.max(0, parseNumberSmart(satsRateEl?.value || "0"));
-    s.countsAgainstBudget = !!satsCountsEl?.checked;
     saveSatsSettings(s);
 
     const data = {
@@ -313,14 +295,13 @@ document.addEventListener("DOMContentLoaded", () => {
   const resetClick = () => {
     if (confirm("Tem certeza que deseja apagar TODOS os dados (incluindo Taxa Sats e Cofre)?")) {
       localStorage.removeItem(STORAGE_KEY);
-      // Reset TOTAL: também limpa configurações e cofre Sats
       localStorage.removeItem(SATS_SETTINGS_KEY);
       localStorage.removeItem(SATS_VAULT_KEY);
       location.reload();
     }
   };
 
-  startButton?.addEventListener("click", startClick);
-  addExpenseButton?.addEventListener("click", addExpenseClick);
-  resetButton?.addEventListener("click", resetClick);
+  document.getElementById("startButton")?.addEventListener("click", startClick);
+  document.getElementById("addExpense")?.addEventListener("click", addExpenseClick);
+  document.getElementById("resetButton")?.addEventListener("click", resetClick);
 });

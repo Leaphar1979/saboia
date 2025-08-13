@@ -1,199 +1,96 @@
+:root {
+  --bg:#f2f4f8;
+  --fg:#222;
+  --card:#fff;
+  --muted:#666;
+  --primary:#0d6efd;
+  --danger:#dc3545;
+  --ok:#28a745;
+}
+
+* { box-sizing: border-box; }
+
 body {
-  font-family: "Segoe UI", sans-serif;
-  background: #f2f4f8;
-  color: #222;
+  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
+  background: var(--bg);
+  color: var(--fg);
   margin: 0;
-  padding: 1rem;
 }
 
 main {
-  max-width: 500px;
-  margin: auto;
-  background: #fff;
-  padding: 2rem;
-  border-radius: 12px;
-  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
-  min-height: 100dvh; /* melhor para mobile que 100vh */
+  max-width: 700px;
+  margin: 0 auto;
+  padding: 16px;
 }
 
-input, button {
-  width: 100%;
-  padding: 0.8rem;
-  margin-top: 1rem;
-  font-size: 16px; /* evita zoom em iOS */
-  border: 1px solid #ccc;
-  border-radius: 8px;
-  box-sizing: border-box;
+h1, h2, h3 {
+  margin-top: 0;
 }
 
-/* Legenda abaixo do input de data */
-.field-help {
-  margin-top: 6px;
-  font-size: 0.9rem;
-  color: #888;
-}
-
-/* Corrige alinhamento de checkbox (não deve ocupar 100%) */
-input[type="checkbox"] {
-  width: auto;
-  margin: 0;
-  transform: translateY(1px);
+input, button, select {
+  font-size: 1rem;
+  padding: 8px;
+  margin: 4px 0;
 }
 
 button {
-  background-color: #007bff;
-  color: #fff;
+  background: var(--primary);
+  color: white;
   border: none;
   cursor: pointer;
-  transition: background-color 0.3s ease;
-}
-
-button:hover {
-  background-color: #0056b3;
 }
 
 button.danger {
-  background-color: #dc3545;
+  background: var(--danger);
 }
 
-button.danger:hover {
-  background-color: #b52a37;
+button:hover {
+  opacity: 0.9;
 }
-
-.hidden {
-  display: none;
-}
-
-#balanceDisplay {
-  font-size: 2rem;
-  font-weight: bold;
-  margin-top: 1rem;
-}
-
-/* Cores de saldo */
-.balance-positive { color: #28a745; }
-.balance-negative { color: #dc3545; }
 
 ul {
-  list-style-type: none;
-  padding-left: 0;
+  list-style: none;
+  padding: 0;
 }
 
 li {
-  padding: 0.5rem 0;
-  border-bottom: 1px solid #ddd;
+  background: var(--card);
+  margin: 4px 0;
+  padding: 8px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  gap: .5rem;
-  flex-wrap: wrap;
 }
 
-.edit-btn, .delete-btn {
-  margin-left: 0.5rem;
-  background-color: #ffc107;
-  color: #000;
-  border: none;
-  padding: 0.3rem 0.6rem;
-  font-size: 0.9rem;
-  border-radius: 6px;
-  cursor: pointer;
+.sats-config {
+  background: var(--card);
+  padding: 10px;
+  border-radius: 8px;
+  margin-top: 12px;
 }
 
-.delete-btn {
-  background-color: #dc3545;
-  color: #fff;
+.date-hint {
+  display: block;
+  font-size: 0.85rem;
+  color: var(--muted);
+  margin-bottom: 8px;
 }
 
-.edit-btn:hover {
-  background-color: #e0a800;
-}
-
-.delete-btn:hover {
-  background-color: #c82333;
-}
-
-/* Badge da Taxa Sats nos itens */
-.badge {
-  font-size: .78rem;
-  padding: .12rem .4rem;
-  border-radius: .5rem;
-  background: #f2f4f8;
-  color: #555;
-  border: 1px solid #e3e6ea;
-  margin-left: .5rem;
-}
-
-/* Card genérico (Sats settings) */
-.card {
-  padding: 12px;
-  background: #fff;
-  border-radius: 12px;
-  box-shadow: 0 1px 4px rgba(0,0,0,.06);
-  margin: 16px 0 8px;
-  border: 1px solid #eef1f5;
-}
-
-.card h3 { margin: 0 0 8px; }
-
-/* Linhas com label e input */
-.row {
+.expense-input {
   display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 8px 0;
+  gap: 4px;
 }
 
-.row > span {
-  min-width: 120px;
+.expense-input input {
+  flex: 1;
 }
 
-.muted { color: #666; }
-.small { font-size: .9rem; }
-
-/* Link discreto para o Cofre */
-.link-muted { color:#666; text-decoration: underline; }
-.link-muted:hover { color:#333; }
-
-/* Responsividade */
-@media (max-width: 480px) {
-  main {
-    padding: 1rem;
-    border-radius: 0;
-    box-shadow: none;
-  }
-
-  h1, h2, h3 {
-    font-size: 1.2rem;
-    text-align: center;
-  }
-
-  input, button {
-    font-size: 1rem;
-  }
-
-  #balanceDisplay {
-    font-size: 1.5rem;
-    text-align: center;
-  }
-
-  li {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
-  .edit-btn, .delete-btn {
-    width: 100%;
-    margin: 0.25rem 0 0 0;
-  }
-
-  .row {
-    flex-direction: row;
-    gap: 10px;
-  }
-
-  .row > span {
-    min-width: 0;
-    flex: 1 1 auto;
-  }
+.cofre-icon {
+  width: 64px;
+  height: auto;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+.cofre-icon:hover {
+  transform: scale(1.08);
 }

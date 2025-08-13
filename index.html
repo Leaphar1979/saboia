@@ -27,20 +27,19 @@
 
       <!-- Configuração da Taxa Sats (somente no setup) -->
       <section id="sats-settings" class="card">
-        <h3>Taxa Sats (BTC)</h3>
+        <h3>Taxa Sats</h3>
+
         <label class="row">
           <input type="checkbox" id="satsEnabled" />
-          Ativar Taxa Sats
+          <span>Ativar Taxa Sats</span>
         </label>
+
         <label class="row">
-          Alíquota (%):
+          <span>Alíquota (%)</span>
           <input type="number" id="satsRate" min="0" step="0.1" value="10" />
         </label>
-        <label class="row">
-          <input type="checkbox" id="satsCountsAgainstBudget" checked />
-          Descontar taxa do saldo do dia (modo A)
-        </label>
-        <p class="muted">No modo A, cada gasto “aperta” o saldo (disciplina extra). No modo B, acumula sem afetar o saldo do dia.</p>
+
+        <p class="muted small">Cada gasto aplica a alíquota ao débito do dia e acumula no seu “cofre” (modo A).</p>
       </section>
 
       <button id="startButton">Iniciar</button>
@@ -50,7 +49,7 @@
       <h2>Saldo do Dia</h2>
       <div id="balanceDisplay">R$ 0,00</div>
 
-      <!-- Layout diário original: registrar gasto + lista -->
+      <!-- Tela diária: registrar gasto + lista -->
       <h3>Registrar Gasto</h3>
       <input type="number" id="expense" placeholder="Valor do gasto" />
       <button id="addExpense">Adicionar</button>
@@ -60,7 +59,7 @@
 
       <button id="resetButton" class="danger">Resetar Tudo</button>
 
-      <!-- Informação da Taxa Sats permanece (relatório enxuto) -->
+      <!-- Rodapé/relatório da Taxa Sats -->
       <footer id="sats-report" class="muted">
         Taxa Sats aplicada hoje: <span id="satsToday">R$ 0,00</span> • Mês: <span id="satsMonth">R$ 0,00</span>
       </footer>

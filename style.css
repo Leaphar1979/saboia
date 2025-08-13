@@ -1,63 +1,195 @@
-:root{
-  --bg:#f2f4f8;
-  --fg:#222;
-  --card:#fff;
-  --muted:#666;
-  --primary:#0d6efd;
-  --danger:#dc3545;
-  --ok:#28a745;
+body {
+  font-family: "Segoe UI", sans-serif;
+  background: #f2f4f8;
+  color: #222;
+  margin: 0;
+  padding: 1rem;
 }
 
-*{box-sizing:border-box}
-body{
-  font-family: "Segoe UI", system-ui, -apple-system, Arial, sans-serif;
-  background: var(--bg);
-  color: var(--fg);
-  margin:0;
+main {
+  max-width: 500px;
+  margin: auto;
+  background: #fff;
+  padding: 2rem;
+  border-radius: 12px;
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.05);
+  min-height: 100dvh; /* melhor para mobile que 100vh */
 }
-main{max-width:700px;margin:0 auto;padding:16px}
-h1,h2{margin-top:0}
-input,button{
-  padding:10px;
-  margin:6px 0;
-  border-radius:8px;
-  border:1px solid #ccc;
-  width:100%;
-  font-size:1rem;
+
+input, button {
+  width: 100%;
+  padding: 0.8rem;
+  margin-top: 1rem;
+  font-size: 16px; /* evita zoom em iOS */
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  box-sizing: border-box;
 }
-button{
-  background: var(--primary);
-  color:#fff;
-  border:none;
-  cursor:pointer;
+
+/* Legenda abaixo do input de data */
+.field-help {
+  margin-top: 6px;
+  font-size: 0.9rem;
+  color: #888;
 }
-button.danger{
-  background: var(--danger);
+
+/* Corrige alinhamento de checkbox (não deve ocupar 100%) */
+input[type="checkbox"] {
+  width: auto;
+  margin: 0;
+  transform: translateY(1px);
 }
-button:disabled{
-  opacity:0.6;
-  cursor:not-allowed;
+
+button {
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
 }
-ul{list-style:none;padding:0}
-li{
-  background:var(--card);
-  margin:6px 0;
-  padding:10px;
-  border-radius:8px;
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
+
+button:hover {
+  background-color: #0056b3;
 }
-.card{
-  background:var(--card);
-  padding:10px;
-  border-radius:8px;
-  margin:10px 0;
+
+button.danger {
+  background-color: #dc3545;
 }
-.muted{color:var(--muted);font-size:0.9rem}
-.saldo{
-  font-size:2rem;
-  font-weight:bold;
+
+button.danger:hover {
+  background-color: #b52a37;
 }
-.saldo.positivo{color:var(--ok)}
-.saldo.negativo{color:var(--danger)}
+
+.hidden {
+  display: none;
+}
+
+#balanceDisplay {
+  font-size: 2rem;
+  font-weight: bold;
+  margin-top: 1rem;
+}
+
+/* Cores de saldo */
+.balance-positive { color: #28a745; }
+.balance-negative { color: #dc3545; }
+
+ul {
+  list-style-type: none;
+  padding-left: 0;
+}
+
+li {
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.edit-btn, .delete-btn {
+  margin-left: 0.5rem;
+  background-color: #ffc107;
+  color: #000;
+  border: none;
+  padding: 0.3rem 0.6rem;
+  font-size: 0.9rem;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.delete-btn {
+  background-color: #dc3545;
+  color: #fff;
+}
+
+.edit-btn:hover {
+  background-color: #e0a800;
+}
+
+.delete-btn:hover {
+  background-color: #c82333;
+}
+
+/* Badge da Taxa Sats nos itens */
+.badge {
+  font-size: .78rem;
+  padding: .12rem .4rem;
+  border-radius: .5rem;
+  background: #f2f4f8;
+  color: #555;
+  border: 1px solid #e3e6ea;
+  margin-left: .5rem;
+}
+
+/* Card genérico (Sats settings) */
+.card {
+  padding: 12px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  margin: 16px 0 8px;
+  border: 1px solid #eef1f5;
+}
+
+.card h3 { margin: 0 0 8px; }
+
+/* Linhas com label e input */
+.row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.row > span {
+  min-width: 120px;
+}
+
+.muted { color: #666; }
+.small { font-size: .9rem; }
+
+/* Responsividade */
+@media (max-width: 480px) {
+  main {
+    padding: 1rem;
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  h1, h2, h3 {
+    font-size: 1.2rem;
+    text-align: center;
+  }
+
+  input, button {
+    font-size: 1rem;
+  }
+
+  #balanceDisplay {
+    font-size: 1.5rem;
+    text-align: center;
+  }
+
+  li {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .edit-btn, .delete-btn {
+    width: 100%;
+    margin: 0.25rem 0 0 0;
+  }
+
+  .row {
+    flex-direction: row;
+    gap: 10px;
+  }
+
+  .row > span {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+}

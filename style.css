@@ -151,6 +151,10 @@ li {
 .muted { color: #666; }
 .small { font-size: .9rem; }
 
+/* Link discreto para o Cofre */
+.link-muted { color:#666; text-decoration: underline; }
+.link-muted:hover { color:#333; }
+
 /* Responsividade */
 @media (max-width: 480px) {
   main {

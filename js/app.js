@@ -3,7 +3,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   // === SATS: chaves e helpers ===
   const SATS_SETTINGS_KEY = "satsSettings/v1";
-  const SATS_VAULT_KEY = "satsVault/v1"; // valor acumulado em BRL
+  const SATS_VAULT_KEY = "satsVault/v1"; // valor acumulado em BRL (fica invisível na UI diária, mas continua funcionando)
 
   const CURRENCY = "pt-BR";
   const BRL = { style: "currency", currency: "BRL" };
@@ -16,8 +16,7 @@ document.addEventListener("DOMContentLoaded", () => {
     if (s === null || s === undefined) return NaN;
     s = String(s).trim();
     if (!s) return NaN;
-    // remove separador de milhar e normaliza decimal
-    s = s.replace(/\./g, "").replace(/,/g, ".");
+    s = s.replace(/\./g, "").replace(/,/g, "."); // remove milhar e normaliza decimal
     const n = Number(s);
     return isNaN(n) ? NaN : n;
   }
@@ -40,10 +39,6 @@ document.addEventListener("DOMContentLoaded", () => {
   function setSatsVaultBRL(v) {
     localStorage.setItem(SATS_VAULT_KEY, String(Math.max(0, round2(v))));
   }
-  function renderVault() {
-    const el = document.getElementById("satsVaultBRL");
-    if (el) el.textContent = fmtBRL(getSatsVaultBRL());
-  }
 
   // === elementos base ===
   const startButton = document.getElementById("startButton");
@@ -60,11 +55,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const setupSection = document.getElementById("setup");
   const appSection = document.getElementById("appSection");
 
-  // === elementos SATS UI ===
+  // === elementos SATS (somente no setup) ===
   const satsEnabledEl = document.getElementById("satsEnabled");
   const satsRateEl = document.getElementById("satsRate");
   const satsCountsEl = document.getElementById("satsCountsAgainstBudget");
-  const satsConvertBtn = document.getElementById("satsConvertBtn");
 
   function getTodayDate() {
     const now = new Date();
@@ -181,7 +175,6 @@ document.addEventListener("DOMContentLoaded", () => {
     balanceDisplay.classList.toggle("balance-positive", balance >= 0);
 
     updateExpenseList(data);
-    renderVault();
     updateSatsReport(data);
   }
 
@@ -189,13 +182,7 @@ document.addEventListener("DOMContentLoaded", () => {
     setupSection.classList.add("hidden");
     appSection.classList.remove("hidden");
 
-    // SATS: carregar UI atual
-    const s = loadSatsSettings();
-    if (satsEnabledEl) satsEnabledEl.checked = s.enabled;
-    if (satsRateEl) satsRateEl.value = s.rate;
-    if (satsCountsEl) satsCountsEl.checked = s.countsAgainstBudget;
-    renderVault();
-
+    // Não há painel de Sats na tela diária — apenas usamos as configs salvas
     updateDisplay(data);
   }
 
@@ -210,11 +197,9 @@ document.addEventListener("DOMContentLoaded", () => {
       return { effectiveDebit: amountBRL, satsTax: 0, counted: false };
     }
     const satsTax = round2(amountBRL * (s.rate / 100));
-    setSatsVaultBRL(getSatsVaultBRL() + satsTax);
+    setSatsVaultBRL(getSatsVaultBRL() + satsTax); // ainda acumulamos no Cofre (sem exibir)
 
     const effective = s.countsAgainstBudget ? round2(amountBRL + satsTax) : amountBRL;
-
-    renderVault();
     return { effectiveDebit: effective, satsTax, counted: s.countsAgainstBudget };
   }
 
@@ -224,7 +209,7 @@ document.addEventListener("DOMContentLoaded", () => {
     // aplica taxa Sats
     const { effectiveDebit, satsTax, counted } = applySatsOnSpend(value);
 
-    // salva despesa com campos extras (sem quebrar o modelo)
+    // salva despesa com campos extras
     data.expenses.push({
       amount: value,
       effectiveDebit: effectiveDebit,
@@ -245,7 +230,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const tax = Number(expense.satsTaxApplied || 0);
     if (tax > 0) {
       setSatsVaultBRL(getSatsVaultBRL() - tax);
-      renderVault();
     }
 
     data.expenses.splice(index, 1);
@@ -277,7 +261,6 @@ document.addEventListener("DOMContentLoaded", () => {
     };
 
     saveData(data);
-    renderVault();
     updateDisplay(data);
   }
 
@@ -297,6 +280,13 @@ document.addEventListener("DOMContentLoaded", () => {
       alert("Preencha os campos corretamente.");
       return;
     }
+
+    // Salva configurações da Taxa Sats a partir do SETUP
+    const s = loadSatsSettings();
+    s.enabled = !!satsEnabledEl?.checked;
+    s.rate = Math.max(0, parseNumberSmart(satsRateEl?.value || "0"));
+    s.countsAgainstBudget = !!satsCountsEl?.checked;
+    saveSatsSettings(s);
 
     const data = {
       startDate,
@@ -333,31 +323,4 @@ document.addEventListener("DOMContentLoaded", () => {
   startButton?.addEventListener("click", startClick);
   addExpenseButton?.addEventListener("click", addExpenseClick);
   resetButton?.addEventListener("click", resetClick);
-
-  // === Listeners SATS UI ===
-  satsEnabledEl?.addEventListener("change", () => {
-    const cur = loadSatsSettings();
-    cur.enabled = !!satsEnabledEl.checked;
-    saveSatsSettings(cur);
-  });
-
-  satsRateEl?.addEventListener("input", () => {
-    const cur = loadSatsSettings();
-    cur.rate = Math.max(0, parseNumberSmart(satsRateEl.value || "0"));
-    saveSatsSettings(cur);
-  });
-
-  satsCountsEl?.addEventListener("change", () => {
-    const cur = loadSatsSettings();
-    cur.countsAgainstBudget = !!satsCountsEl.checked;
-    saveSatsSettings(cur);
-  });
-
-  satsConvertBtn?.addEventListener("click", () => {
-    const current = getSatsVaultBRL();
-    if (current <= 0) return alert("Cofre Sats já está zerado.");
-    if (!confirm(`Confirmar: zerar Cofre Sats (R$ ${current.toFixed(2)}) após registrar sua compra de BTC?`)) return;
-    setSatsVaultBRL(0);
-    renderVault();
-  });
 });

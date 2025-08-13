@@ -71,6 +71,24 @@ li {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  gap: .5rem;
+  flex-wrap: wrap;
+}
+
+.expense-meta {
+  display: flex;
+  gap: .5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.badge {
+  font-size: .78rem;
+  padding: .12rem .4rem;
+  border-radius: .5rem;
+  background: #f2f4f8;
+  color: #555;
+  border: 1px solid #e3e6ea;
 }
 
 .edit-btn, .delete-btn {
@@ -96,6 +114,34 @@ li {
 .delete-btn:hover {
   background-color: #c82333;
 }
+
+/* Painel Taxa Sats */
+#sats-settings {
+  padding: 12px;
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,.06);
+  margin: 16px 0 8px;
+  border: 1px solid #eef1f5;
+}
+#sats-settings h3 { margin: 0 0 8px; }
+#sats-settings .row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+#sats-settings input[type="number"] { max-width: 120px; }
+#sats-settings .sats-cofre { margin-top: 10px; display: grid; gap: 6px; }
+#sats-settings .btn {
+  padding: 8px 12px;
+  border: 0;
+  border-radius: 10px;
+  background: #007bff;
+  color: #fff;
+  cursor: pointer;
+}
+.muted { color: #666; font-size: .9rem; }
 
 /* Responsividade para mobile */
 @media (max-width: 480px) {

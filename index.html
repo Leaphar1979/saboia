@@ -22,7 +22,15 @@
       <h1>Simple$</h1>
       <p>Informe o valor diário e a data de início:</p>
 
-      <input type="number" id="dailyAmount" placeholder="Valor diário (ex: 50)" />
+      <!-- Aceita 50, 23,50, 23.50 -->
+      <input
+        id="dailyAmount"
+        type="text"
+        inputmode="decimal"
+        step="0.01"
+        placeholder="Valor diário (ex.: 50 ou 23,50)"
+        autocomplete="off"
+      />
       <input type="date" id="startDate" />
       <div class="field-help">Defina a data de início</div>
 
@@ -37,7 +45,15 @@
 
         <label class="row">
           <span>Alíquota (%)</span>
-          <input type="number" id="satsRate" min="0" step="0.1" value="10" />
+          <input
+            id="satsRate"
+            type="text"
+            inputmode="decimal"
+            step="0.01"
+            value="10"
+            placeholder="Ex.: 1,5"
+            autocomplete="off"
+          />
         </label>
 
         <p class="muted small">Cada gasto aplica a alíquota ao débito do dia e acumula no seu “cofre”.</p>
@@ -52,7 +68,14 @@
       <div id="balanceDisplay">R$ 0,00</div>
 
       <h3>Registrar Gasto</h3>
-      <input type="number" id="expense" placeholder="Valor do gasto" />
+      <input
+        id="expense"
+        type="text"
+        inputmode="decimal"
+        step="0.01"
+        placeholder="Valor do gasto (ex.: 15,75)"
+        autocomplete="off"
+      />
       <button id="addExpense">Adicionar</button>
 
       <h3>Gastos do Dia</h3>

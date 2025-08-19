@@ -9,15 +9,65 @@ document.addEventListener("DOMContentLoaded", () => {
   const fmtBRL = (n) => Number(n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const round2 = (n) => Math.round((Number(n) + Number.EPSILON) * 100) / 100;
 
-  // aceita 100,50 e 100.50 (remove . milhar e normaliza , para .)
-  function parseNumberSmart(s) {
-    if (typeof s === "number") return s;
-    if (s === null || s === undefined) return NaN;
-    s = String(s).trim();
+  /**
+   * Parser robusto para valores monetários.
+   * - Aceita: "23,5", "23.5", "1.234,56", "1,234.56", "1.234.567", "R$ 1.234,56" etc.
+   * - Usa o ÚLTIMO separador (vírgula ou ponto) como DECIMAL e remove os demais como milhar.
+   * - Retorna NaN quando não há número válido.
+   */
+  function parseNumberSmart(input) {
+    if (typeof input === "number") return input;
+    if (input === null || input === undefined) return NaN;
+
+    let s = String(input).trim();
     if (!s) return NaN;
-    s = s.replace(/\./g, "").replace(/,/g, ".");
+
+    // Remove espaços (inclui espaço estreito U+202F) e símbolo de moeda
+    s = s.replace(/\u202F/g, "").replace(/\s|R\$\s?/gi, "");
+
+    const hasComma = s.includes(",");
+    const hasDot   = s.includes(".");
+
+    if (hasComma && hasDot) {
+      const lastComma = s.lastIndexOf(",");
+      const lastDot   = s.lastIndexOf(".");
+      const decimalIsComma = lastComma > lastDot;
+
+      if (decimalIsComma) {
+        // Ponto é milhar → remove todos os pontos; última vírgula vira ponto decimal
+        s = s.replace(/\./g, "");
+        s = s.replace(/,([^,]*)$/, ".$1");
+      } else {
+        // Vírgula é milhar → remove todas as vírgulas; ponto final já é decimal
+        s = s.replace(/,/g, "");
+        // (mantém o ponto decimal final)
+      }
+    } else if (hasComma) {
+      // Só vírgula: se houver mais de uma, a última é decimal; as demais são milhar
+      const parts = s.split(",");
+      if (parts.length > 2) {
+        const dec = parts.pop();
+        s = parts.join("");     // remove vírgulas de milhar
+        s += "." + dec;         // define ponto como decimal
+      } else {
+        s = s.replace(",", "."); // vírgula decimal simples
+      }
+    } else if (hasDot) {
+      // Só ponto: se houver mais de um, a última é decimal; os anteriores são milhar
+      const parts = s.split(".");
+      if (parts.length > 2) {
+        const dec = parts.pop();
+        s = parts.join("");     // remove pontos de milhar
+        s += "." + dec;         // mantém o último como decimal
+      }
+      // Se tinha só um ponto, já está ok
+    }
+
+    // Remove qualquer coisa que não seja dígito, sinal ou ponto decimal
+    s = s.replace(/[^0-9\.\-]/g, "");
+
     const n = Number(s);
-    return isNaN(n) ? NaN : n;
+    return Number.isFinite(n) ? n : NaN;
   }
 
   function getTodayDate() {

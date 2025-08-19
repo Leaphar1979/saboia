@@ -58,6 +58,7 @@
     .delta-neg { color: #dc3545; }
     .muted { color: #666; }
     .price-line { margin-top: 6px; font-size:.95rem; }
+    .small { font-size: .85rem; }
   </style>
 </head>
 <body>
@@ -75,10 +76,11 @@
           <span class="muted"> (1 BTC = </span><strong id="btcPriceBRL">—</strong><span class="muted">)</span>
         </div>
 
-        <div id="vaultBtc" style="margin-top:6px;">₿ 0.00000000</div>
+        <div id="vaultBtc" style="margin-top:6px;">₿ —</div>
+        <div class="small muted" id="lastUpdated" style="margin-top:4px;">Última atualização: —</div>
 
         <div class="vault-actions">
-          <button id="btnPurchase" class="btn-outline">Registrar compra de BTC (zerar cofre)</button>
+          <button id="btnPurchase" class="btn-outline" disabled>Registrar compra de BTC (zerar cofre)</button>
           <button id="btnRefresh" class="btn-outline" title="Atualizar cotação e totais">Atualizar</button>
         </div>
       </div>
@@ -105,6 +107,14 @@
     const fmtBRL = n => Number(n||0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
     const fmtBTC = n => "₿ " + (Number(n||0)).toFixed(8);
     const round2 = n => Math.round((Number(n)+Number.EPSILON)*100)/100;
+
+    const setLastUpdated = (d) => {
+      const el = document.getElementById("lastUpdated");
+      if (!el) return;
+      if (!d) { el.textContent = "Última atualização: —"; return; }
+      const dt = new Date(d);
+      el.textContent = "Última atualização: " + dt.toLocaleString("pt-BR");
+    };
 
     // === STORAGE (app) ===
     const loadVaultValue = () => {
@@ -143,7 +153,7 @@
         if (!price || !source || !ts) return null;
         const ageMin = (Date.now() - ts) / 60000;
         if (ageMin > PRICE_TTL_MIN) return null;
-        return { price, source };
+        return { price, source, ts };
       } catch { return null; }
     }
     function saveCachedPrice(priceBRL, source) {
@@ -174,7 +184,6 @@
         }
       } catch {}
 
-      // Sem preço ao vivo
       return null;
     }
 
@@ -183,7 +192,7 @@
       if (cached) return cached;
       const live = await fetchPriceBRL_withSource();
       if (live) saveCachedPrice(live.price, live.source);
-      return live;
+      return live ? { ...live, ts: Date.now() } : null;
     }
 
     // === RENDER ===
@@ -226,6 +235,12 @@
       const vault = loadVaultValue();
       document.getElementById("vaultTotal").textContent = fmtBRL(vault);
 
+      // estado do botão antes de buscar preço
+      const btn = document.getElementById("btnPurchase");
+      btn.disabled = vault <= 0;
+      btn.style.opacity = vault <= 0 ? .6 : 1;
+      btn.style.cursor = vault <= 0 ? "not-allowed" : "pointer";
+
       const pricePkg = await getPriceBRL_withSource();
       const priceEl = document.getElementById("btcPriceBRL");
       const sourceEl = document.getElementById("priceSource");
@@ -235,18 +250,15 @@
         priceEl.textContent = fmtBRL(pricePkg.price);
         sourceEl.textContent = pricePkg.source;
         vaultBtcEl.textContent = fmtBTC(vault / pricePkg.price);
+        setLastUpdated(pricePkg.ts);
       } else {
         priceEl.textContent = "indisponível no momento";
         sourceEl.textContent = "—";
+        vaultBtcEl.textContent = "₿ —";
+        setLastUpdated(null);
       }
 
       renderLedger(document.getElementById("vaultList"));
-
-      // estado do botão
-      const btn = document.getElementById("btnPurchase");
-      btn.disabled = vault <= 0;
-      btn.style.opacity = vault <= 0 ? .6 : 1;
-      btn.style.cursor = vault <= 0 ? "not-allowed" : "pointer";
     }
 
     // === AÇÕES ===

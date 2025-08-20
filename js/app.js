@@ -70,18 +70,55 @@ document.addEventListener("DOMContentLoaded", () => {
     return Number.isFinite(n) ? n : NaN;
   }
 
+  // Sanitizador leve para inputs numéricos (não altera layout)
+  function attachNumericSanitizer(el) {
+    if (!el) return;
+    el.addEventListener("input", () => {
+      const clean = el.value.replace(/[^\d,\.]/g, "");
+      if (clean !== el.value) el.value = clean;
+    }, { passive: true });
+  }
+
   function getTodayDate() {
     const now = new Date();
     now.setUTCHours(now.getUTCHours() - 3); // Ajusta para UTC-3
     return now.toISOString().split("T")[0]; // YYYY-MM-DD
   }
 
-  // === ESTADO / PERSISTÊNCIA ===
-  function loadData() {
-    return JSON.parse(localStorage.getItem(STORAGE_KEY)) || null;
+  // === ESTADO / PERSISTÊNCIA (robustos) ===
+  function isValidState(obj) {
+    if (!obj || typeof obj !== "object") return false;
+    const okCaixas = Array.isArray(obj.expenses);   // no V1 o dia corrente fica em expenses
+    const okDaily = typeof obj.dailyAmount === "number";
+    const okDates = typeof obj.currentDate === "string" && !!obj.currentDate;
+    // shape mínimo suficiente para não travar
+    return okCaixas && okDates && okDaily;
   }
+
+  function loadData() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) return null;
+      const data = JSON.parse(raw);
+      if (!isValidState(data)) {
+        // estado inválido → remove para não quebrar a UI
+        try { localStorage.removeItem(STORAGE_KEY); } catch {}
+        return null;
+      }
+      return data;
+    } catch {
+      // JSON quebrado → limpa e retorna null
+      try { localStorage.removeItem(STORAGE_KEY); } catch {}
+      return null;
+    }
+  }
+
   function saveData(data) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (e) {
+      console.warn("Falha ao salvar dados do app:", e);
+    }
   }
 
   function loadSatsSettings() {
@@ -90,7 +127,11 @@ document.addEventListener("DOMContentLoaded", () => {
     catch { return def; }
   }
   function saveSatsSettings(s) {
-    localStorage.setItem(SATS_SETTINGS_KEY, JSON.stringify(s));
+    try {
+      localStorage.setItem(SATS_SETTINGS_KEY, JSON.stringify(s));
+    } catch (e) {
+      console.warn("Falha ao salvar Sats Settings:", e);
+    }
   }
 
   function getSatsVaultBRL() {
@@ -98,7 +139,11 @@ document.addEventListener("DOMContentLoaded", () => {
     return isNaN(v) ? 0 : v;
   }
   function setSatsVaultBRL(v) {
-    localStorage.setItem(SATS_VAULT_KEY, String(Math.max(0, round2(v))));
+    try {
+      localStorage.setItem(SATS_VAULT_KEY, String(Math.max(0, round2(v))));
+    } catch (e) {
+      console.warn("Falha ao salvar Cofre (BRL):", e);
+    }
   }
 
   // Ledger (histórico para o Cofre)
@@ -107,7 +152,11 @@ document.addEventListener("DOMContentLoaded", () => {
     catch { return []; }
   }
   function saveLedger(arr) {
-    localStorage.setItem(SATS_LEDGER_KEY, JSON.stringify(arr));
+    try {
+      localStorage.setItem(SATS_LEDGER_KEY, JSON.stringify(arr));
+    } catch (e) {
+      console.warn("Falha ao salvar Ledger:", e);
+    }
   }
   function addLedger(delta, type) {
     // delta positivo = entrada no cofre; negativo = saída/estorno
@@ -142,6 +191,11 @@ document.addEventListener("DOMContentLoaded", () => {
   // elementos SATS do setup
   const satsEnabledEl = document.getElementById("satsEnabled");
   const satsRateEl = document.getElementById("satsRate");
+
+  // aplica sanitizador nos inputs numéricos (sem mudar UI)
+  attachNumericSanitizer(dailyAmountInput);
+  attachNumericSanitizer(expenseInput);
+  attachNumericSanitizer(satsRateEl);
 
   // === CÁLCULOS ===
   // Soma gastos considerando effectiveDebit (Modo A)
@@ -226,6 +280,9 @@ document.addEventListener("DOMContentLoaded", () => {
   }
 
   function updateDisplay(data) {
+    // guarda contra estado inválido (não quebra UI)
+    if (!data || typeof data !== "object") return;
+
     checkNewDay(data);
 
     const balance = round2(calculateBalance(data));
@@ -295,6 +352,11 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     const data = loadData();
+    if (!data) {
+      alert("Configuração não encontrada. Inicie o app informando data e valor diário.");
+      return;
+    }
+
     const { effectiveDebit, satsTax } = applySatsOnSpend(value);
 
     data.expenses.push({
@@ -366,6 +428,10 @@ document.addEventListener("DOMContentLoaded", () => {
   const existingData = loadData();
   if (existingData) {
     initApp(existingData);
+  } else {
+    // garante estado limpo na UI (mostra setup)
+    setupSection.classList.remove("hidden");
+    appSection.classList.add("hidden");
   }
 
   // === LISTENERS ===

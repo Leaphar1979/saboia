@@ -4,86 +4,79 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Sobre — Simple$ Sats</title>
-  <!-- herda o visual do app -->
-  <link rel="stylesheet" href="style.css?v=sobre3">
+  <link rel="stylesheet" href="style.css?v=sobreFinal">
   <meta name="theme-color" content="#f7941d">
   <style>
-    /* Ajustes finos só desta página */
-    main { max-width: 560px; }
-    section { text-align: center; }
-    h2, h3 { margin-top: .25rem; }
-    p, li { line-height: 1.55; }
-    /* negritos em azul-escuro para destacar */
-    strong { color: #0d3b66; font-weight: 700; }
-    /* lista “limpa” e centralizada */
-    .about-list, .about-steps { 
-      display: inline-block; 
-      text-align: left; 
-      margin: .5rem 0 0; 
-      padding-left: 1rem;
-    }
-    .about-steps li { margin: .25rem 0; }
+    main { max-width: 640px; }
+    section { text-align: justify; }
+    h2, h3 { text-align: center; margin-top: 1rem; }
+    p, li { line-height: 1.6; }
+    strong { color: #0d3b66; }
+    .divider { height: 1px; background: #eef1f5; border: 0; margin: 1.5rem auto; width: 90%; }
     .note {
-      display: inline-block;
-      margin-top: .75rem;
-      padding: .5rem .75rem;
-      border-radius: 10px;
       background: #f2f4f8;
       border: 1px solid #e3e6ea;
-      color: #555;
+      border-radius: 10px;
+      padding: .75rem 1rem;
+      margin: 1rem 0;
       font-size: .95rem;
-    }
-    .divider {
-      height: 1px; background: #eef1f5; border: 0; margin: 1.25rem auto; width: 90%;
+      text-align: justify;
     }
     .back-link { 
-      display:inline-block; margin-top:1rem; text-decoration: none; 
-      color:#007bff; border:1px solid #cfe2ff; padding:.6rem .9rem; border-radius:10px;
-      transition: background .2s ease;
+      display:block; margin:2rem auto 0; text-decoration:none; 
+      color:#007bff; border:1px solid #cfe2ff; 
+      padding:.6rem 1rem; border-radius:10px; 
+      width: fit-content; transition: background .2s ease;
     }
     .back-link:hover { background:#f5f9ff; }
-    /* ícones grandes mas discretos */
-    .emoji { font-size: 1.15rem; vertical-align: -1px; }
   </style>
 </head>
 <body>
   <main>
     <section>
       <h2>📖 <strong>Sobre o Simple$ – Sats</strong></h2>
+
       <p>
         O <strong>Simple$ – Sats</strong> é um app de <strong>controle diário de gastos</strong> com uma regra opcional:
-        a <strong>Taxa Sats</strong>. Em cada gasto, você aplica uma alíquota (ex.: 10%) e o
-        <strong>valor dessa taxa</strong> vai para o seu <strong>Cofre Sats</strong> (em BRL). No Cofre, você vê também o
-        <strong>equivalente em BTC</strong> dessa taxa acumulada (cotação com cache ~10 min).
+        a <strong>Taxa Sats</strong>. Em cada gasto, você aplica uma alíquota definida (ex.: 10%) e o
+        <strong>valor dessa taxa</strong> vai para o seu <strong>Cofre Sats</strong> (em BRL). No Cofre, é exibido também
+        o <strong>equivalente em BTC</strong> desse valor acumulado, atualizado com cotação (cache ~10 min).
       </p>
 
-      <ul class="about-list">
-        <li>🧰 <strong>Estrutura:</strong> única caixa de controle diário.</li>
-        <li>🧮 <strong>Taxa Sats:</strong> alíquota por gasto; só a taxa vai ao Cofre.</li>
-        <li>🐷 <strong>Cofre Sats:</strong> total em BRL + equivalente ₿.</li>
+      <hr class="divider">
+
+      <h3>💡 Como funciona</h3>
+      <p>
+        1. Defina a alíquota da <strong>Taxa Sats</strong>.<br>
+        2. Ao registrar um gasto, o app calcula a <strong>taxa</strong> e a envia ao Cofre.<br>
+        3. O Cofre mostra o total em BRL e o equivalente em BTC.<br>
+        4. Se editar ou excluir um gasto, o valor da taxa é ajustado/estornado automaticamente.
+      </p>
+
+      <div class="note">
+        ⚡ Seus dados ficam <strong>apenas no seu aparelho</strong> (armazenados em <code>localStorage</code>), garantindo
+        simplicidade e privacidade.
+      </div>
+
+      <hr class="divider">
+
+      <h3>📩 Contato</h3>
+      <p style="text-align:center;">
+        <a href="https://t.me/Leapharr" target="_blank" rel="noopener">@Leapharr</a> no Telegram
+      </p>
+
+      <hr class="divider">
+
+      <h3>⚖️ Licença</h3>
+      <p>
+        Este aplicativo é distribuído sob a licença <strong>Creative Commons BY-NC-ND 4.0</strong>.  
+        Isso significa:  
+      </p>
+      <ul>
+        <li><strong>BY</strong> — Atribuição obrigatória ao autor.</li>
+        <li><strong>NC</strong> — Uso permitido apenas para fins não comerciais.</li>
+        <li><strong>ND</strong> — Não é permitido modificar ou distribuir obras derivadas.</li>
       </ul>
-
-      <hr class="divider">
-
-      <h3>💡 <strong>Como funciona na prática</strong></h3>
-      <ol class="about-steps">
-        <li>Defina a <strong>alíquota</strong> (ex.: 10%).</li>
-        <li>Registre um gasto (ex.: <strong>R$ 50,00</strong>).</li>
-        <li>O app calcula a <strong>taxa</strong> (R$ 5,00) e envia ao <strong>Cofre Sats</strong>.</li>
-        <li>O Cofre mostra <strong>R$ 5,00</strong> e o equivalente <strong>₿</strong> dessa taxa — <u>não</u> do saldo do dia.</li>
-      </ol>
-
-      <p class="note">⚠️ Ao <strong>editar</strong> ou <strong>excluir</strong> um gasto, a parte da taxa é ajustada/estornada no Cofre e registrada no histórico.</p>
-
-      <hr class="divider">
-
-      <p>⚡ <strong>Privacidade:</strong> os dados ficam somente no seu aparelho (armazenados em <code>localStorage</code>).</p>
-
-      <h3>📩 <strong>Contato</strong></h3>
-      <p><a href="https://t.me/Leapharr" target="_blank" rel="noopener">@Leapharr</a> no Telegram</p>
-
-      <h3>⚖️ <strong>Licença</strong></h3>
-      <p>Creative Commons <strong>BY‑NC‑ND 4.0</strong> — uso não comercial; sem modificações ou redistribuição sem autorização.</p>
 
       <a class="back-link" href="index.html">← Voltar ao Simple$</a>
     </section>
